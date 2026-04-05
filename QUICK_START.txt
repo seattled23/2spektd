@@ -1,0 +1,31 @@
+╔════════════════════════════════════════════════════════════════╗
+║                    2spektd — Quick Start                       ║
+╚════════════════════════════════════════════════════════════════╝
+
+INSTALL:
+  bash install.sh
+
+USE IN CLAUDE CODE:
+  /2spektd:new "Build analytics dashboard"
+  /2spektd:upgrade pkg/mycomponent go
+
+DIRECT VALIDATION:
+  bash validation/validate-component.sh <path> <language>
+
+MCP SERVER:
+  Add to ~/.claude.json:
+  {
+    "mcpServers": {
+      "2spektd": {
+        "command": "python",
+        "args": ["/absolute/path/to/mcp-server/server.py"]
+      }
+    }
+  }
+
+DOCUMENTATION:
+  README.md — Main docs
+  validation/QUICK-START.md — Validation reference
+  CONTRIBUTING.md — Development guide
+
+REPO: https://github.com/yourusername/2spektd (when published)
