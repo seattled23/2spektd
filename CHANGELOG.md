@@ -22,5 +22,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 44 validation layer scripts
 - Complete documentation (spec, quick start, guides)
 
-[Unreleased]: https://github.com/yourusername/2spektd/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/yourusername/2spektd/releases/tag/v1.0.0
+[Unreleased]: https://github.com/seattled23/2spektd/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/seattled23/2spektd/releases/tag/v1.0.0

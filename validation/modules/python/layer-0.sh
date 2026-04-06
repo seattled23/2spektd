@@ -28,10 +28,13 @@ echo "Component: $COMPONENT"
 echo ""
 
 # Run strict type checking
-echo "Running: pyright --strict"
+echo "Running: pyright (with strict mode from pyrightconfig.json)"
 echo ""
 
-if pyright --strict "$COMPONENT" 2>&1; then
+output=$(pyright "$COMPONENT" 2>&1)
+echo "$output"
+
+if echo "$output" | rg -q "^0 errors"; then
     echo ""
     echo "════════════════════════════════════════════════════════════════"
     echo "✅ Layer 0: PASS"

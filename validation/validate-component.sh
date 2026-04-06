@@ -23,10 +23,15 @@ fi
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 cd "$PROJECT_ROOT"
 
-MODULE_DIR=".outline/outline-strong/modules/$LANGUAGE"
-if [[ ! -d "$MODULE_DIR" ]]; then
+# Try validation/modules first (standalone 2spektd), then .outline (integration mode)
+if [[ -d "validation/modules/$LANGUAGE" ]]; then
+    MODULE_DIR="validation/modules/$LANGUAGE"
+elif [[ -d ".outline/outline-strong/modules/$LANGUAGE" ]]; then
+    MODULE_DIR=".outline/outline-strong/modules/$LANGUAGE"
+else
     echo "❌ Language module not found: $LANGUAGE"
-    echo "   Expected: $MODULE_DIR"
+    echo "   Searched: validation/modules/$LANGUAGE"
+    echo "            .outline/outline-strong/modules/$LANGUAGE"
     exit 1
 fi
 

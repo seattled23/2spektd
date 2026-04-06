@@ -28,7 +28,7 @@ Turn your code into production-grade software through automated validation gates
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/2spektd.git
+git clone https://github.com/seattled23/2spektd.git
 cd 2spektd
 
 # Install Python dependencies (for MCP server)
@@ -258,6 +258,6 @@ MIT License - See `LICENSE`
 
 Built on Outline-Driven Development principles with deterministic validation gates.
 
-**Author**: [Your Name]
-**Repository**: https://github.com/yourusername/2spektd
-**Issues**: https://github.com/yourusername/2spektd/issues
+**Author**: seattled23
+**Repository**: https://github.com/seattled23/2spektd
+**Issues**: https://github.com/seattled23/2spektd/issues

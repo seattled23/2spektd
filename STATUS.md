@@ -68,7 +68,7 @@
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/2spektd.git
+git clone https://github.com/seattled23/2spektd.git
 cd 2spektd
 
 # Run installer
@@ -188,7 +188,7 @@ Expected: Server starts, awaits stdio input
    git add .
    git commit -m "feat: initial release of 2spektd v1.0.0"
    git branch -M main
-   git remote add origin https://github.com/yourusername/2spektd.git
+   git remote add origin https://github.com/seattled23/2spektd.git
    git push -u origin main
    ```
 
@@ -245,9 +245,9 @@ Expected: Server starts, awaits stdio input
 
 ## Support
 
-- **Issues**: https://github.com/yourusername/2spektd/issues
-- **Discussions**: https://github.com/yourusername/2spektd/discussions
-- **Email**: your.email@example.com
+- **Issues**: https://github.com/seattled23/2spektd/issues
+- **Discussions**: https://github.com/seattled23/2spektd/discussions
+- **Email**: seattled23@users.noreply.github.com
 
 ---
 

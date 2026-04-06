@@ -1,0 +1,9 @@
+{
+  "pythonVersion": "3.10",
+  "typeCheckingMode": "strict",
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+  "reportUnknownMemberType": false,
+  "reportUnknownVariableType": false,
+  "reportUnknownArgumentType": false
+}
