@@ -498,33 +498,16 @@ function_name(params) -> return_type
   // ━━━ WAVE 5: Artifacts ━━━
   console.log('\n🔷 PHASE 2: Artifact Generation\n');
 
+  const componentArtifacts = new Map<string, any>();
+
   for (const [component, spec] of componentSpecs) {
     console.log(`📦 Generating artifacts for ${component}...`);
 
-    // Note: generateAndAuditArtifacts is not implemented yet
-    // For now, we'll skip artifact generation but keep the structure
-    try {
-      await generateAndAuditArtifacts(spec, integrationSpec, component);
+    // Generate and validate artifacts (includes regeneration loop)
+    const artifacts = await generateAndAuditArtifacts(spec, integrationSpec, component);
+    componentArtifacts.set(component, artifacts);
 
-      // TODO: Once artifacts are actually generated, validate them
-      // const artifactValidation = await validateArtifacts(
-      //   spec,
-      //   component,
-      //   artifacts
-      // );
-      //
-      // if (!artifactValidation.pass) {
-      //   // Implement regeneration loop for failed artifacts
-      // }
-
-      console.log(`✓ ${component} artifacts generated.\n`);
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('Not implemented')) {
-        console.log(`  ⚠️ Artifact generation not implemented yet, skipping...\n`);
-      } else {
-        throw error;
-      }
-    }
+    console.log(`✓ ${component} artifacts generated and validated.\n`);
   }
 
   // ━━━ WAVE 6: Code ━━━
