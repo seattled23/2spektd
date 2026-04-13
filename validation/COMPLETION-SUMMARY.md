@@ -89,7 +89,7 @@
 ## File Structure
 
 ```
-.outline/outline-strong/
+.spec2/outline-strong/
 ├── OUTLINE-STRONG-V2-SPEC.md       # 61KB specification
 ├── IMPLEMENTATION-STATUS.md        # Status tracker (updated)
 ├── SESSION-2026-04-05.md           # Build session notes
@@ -139,23 +139,23 @@
 cd /home/swarm/TESSARA
 
 # Go component
-bash .outline/outline-strong/validate-component.sh pkg/jcs go
+bash .spec2/outline-strong/validate-component.sh pkg/jcs go
 
 # TypeScript component
-bash .outline/outline-strong/validate-component.sh website/src/components typescript
+bash .spec2/outline-strong/validate-component.sh website/src/components typescript
 
 # Python script
-bash .outline/outline-strong/validate-component.sh scripts python
+bash .spec2/outline-strong/validate-component.sh scripts python
 
 # Shell script
-bash .outline/outline-strong/validate-component.sh scripts/deploy shell
+bash .spec2/outline-strong/validate-component.sh scripts/deploy shell
 ```
 
 ### **Build New Component (Full Workflow)**
 
 ```bash
 cd /home/swarm/TESSARA
-bash .outline/outline-strong/agents/orchestrate-build.sh "Build analytics dashboard"
+bash .spec2/outline-strong/agents/orchestrate-build.sh "Build analytics dashboard"
 
 # Follow interactive prompts for:
 # 1. Spec generation (tier1 → tier2 → tier3 → integration)
@@ -168,16 +168,16 @@ bash .outline/outline-strong/agents/orchestrate-build.sh "Build analytics dashbo
 
 ```bash
 # Go tools
-bash .outline/outline-strong/modules/go/install-tools.sh
+bash .spec2/outline-strong/modules/go/install-tools.sh
 
 # TypeScript tools
-bash .outline/outline-strong/modules/typescript/install-tools.sh
+bash .spec2/outline-strong/modules/typescript/install-tools.sh
 
 # Python tools
-bash .outline/outline-strong/modules/python/install-tools.sh
+bash .spec2/outline-strong/modules/python/install-tools.sh
 
 # Shell tools
-bash .outline/outline-strong/modules/shell/install-tools.sh
+bash .spec2/outline-strong/modules/shell/install-tools.sh
 ```
 
 ---

@@ -47,14 +47,14 @@ bash modules/go/install-tools.sh
 ### Validate Single Component
 ```bash
 cd /home/swarm/TESSARA
-bash .outline/outline-strong/modules/go/layer-n1.sh pkg/fhir
-bash .outline/outline-strong/modules/go/layer-0.sh pkg/fhir
+bash .spec2/outline-strong/modules/go/layer-n1.sh pkg/fhir
+bash .spec2/outline-strong/modules/go/layer-0.sh pkg/fhir
 # ... continue through layer 10
 ```
 
 ### Validate All Layers (Orchestrator)
 ```bash
-bash .outline/outline-strong/validate-component.sh pkg/fhir go
+bash .spec2/outline-strong/validate-component.sh pkg/fhir go
 ```
 
 ---

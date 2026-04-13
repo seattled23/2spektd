@@ -1,4 +1,4 @@
-# 2spektd — Multi-Language Validation Framework
+# spec2 — Multi-Language Validation Framework
 
 **Deterministic 12-layer code validation with anti-reward-hacking guarantees.**
 
@@ -28,8 +28,8 @@ Turn your code into production-grade software through automated validation gates
 
 ```bash
 # Clone repository
-git clone https://github.com/seattled23/2spektd.git
-cd 2spektd
+git clone https://github.com/seattled23/spec2.git
+cd spec2
 
 # Install Python dependencies (for MCP server)
 pip install -e .
@@ -45,8 +45,8 @@ bash validation/modules/shell/install-tools.sh
 
 ```bash
 # Install skills (symlink to .claude/skills/)
-ln -s $(pwd)/skills/2spektd-new ~/.claude/skills/
-ln -s $(pwd)/skills/2spektd-upgrade ~/.claude/skills/
+ln -s $(pwd)/skills/spec2-new ~/.claude/skills/
+ln -s $(pwd)/skills/spec2-upgrade ~/.claude/skills/
 ```
 
 ### MCP Server (Optional)
@@ -55,9 +55,9 @@ Add to `~/.claude.json`:
 ```json
 {
   "mcpServers": {
-    "2spektd": {
+    "spec2": {
       "command": "python",
-      "args": ["/home/swarm/2spektd/mcp-server/server.py"]
+      "args": ["/home/swarm/spec2/mcp-server/server.py"]
     }
   }
 }
@@ -71,7 +71,7 @@ Add to `~/.claude.json`:
 
 ```bash
 # In Claude Code or Gemini CLI:
-/2spektd:new "Build analytics dashboard with real-time metrics"
+/spec2:new "Build analytics dashboard with real-time metrics"
 ```
 
 Workflow:
@@ -88,7 +88,7 @@ Workflow:
 
 ```bash
 # In Claude Code or Gemini CLI:
-/2spektd:upgrade pkg/jcs go
+/spec2:upgrade pkg/jcs go
 ```
 
 Workflow:
@@ -259,5 +259,5 @@ MIT License - See `LICENSE`
 Built on Outline-Driven Development principles with deterministic validation gates.
 
 **Author**: seattled23
-**Repository**: https://github.com/seattled23/2spektd
-**Issues**: https://github.com/seattled23/2spektd/issues
+**Repository**: https://github.com/seattled23/spec2
+**Issues**: https://github.com/seattled23/spec2/issues

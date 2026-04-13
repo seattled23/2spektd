@@ -13,7 +13,7 @@
 
 ## Outputs
 
-1. **System Specification** (`.outline/specs/system-spec.md`)
+1. **System Specification** (`.spec2/specs/system-spec.md`)
    - System overview
    - Subsystem breakdown
    - High-level architecture
@@ -86,7 +86,7 @@ System spec is ready when:
 
 **Automated** (future):
 ```bash
-bash .outline/outline-strong/agents/tier1-spec-agent.sh requirements.md output/system-spec.md
+bash .spec2/outline-strong/agents/tier1-spec-agent.sh requirements.md output/system-spec.md
 ```
 
 ---
@@ -94,7 +94,7 @@ bash .outline/outline-strong/agents/tier1-spec-agent.sh requirements.md output/s
 ## Lock After Approval
 
 ```bash
-sha256sum .outline/specs/system-spec.md > .outline/outline-strong/locked/system-spec.md.lock
+sha256sum .spec2/specs/system-spec.md > .spec2/outline-strong/locked/system-spec.md.lock
 ```
 
 Once locked, spec cannot be modified without unlocking.

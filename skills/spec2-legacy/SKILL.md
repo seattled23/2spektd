@@ -1,4 +1,4 @@
-# /2spektd:upgrade — Validate and Upgrade Existing Code
+# /spec2:upgrade — Validate and Upgrade Existing Code
 
 **Purpose**: Run 12-layer validation on existing code and optionally enter fix loop to bring it up to production standards.
 
@@ -7,18 +7,18 @@
 ## Usage
 
 ```bash
-/2spektd:upgrade <component-path> [language]
+/spec2:upgrade <component-path> [language]
 ```
 
 **Examples**:
 ```bash
-/2spektd:upgrade pkg/analytics go
-/2spektd:upgrade src/components/Dashboard typescript
-/2spektd:upgrade scripts/deploy python
-/2spektd:upgrade scripts/backup.sh shell
+/spec2:upgrade pkg/analytics go
+/spec2:upgrade src/components/Dashboard typescript
+/spec2:upgrade scripts/deploy python
+/spec2:upgrade scripts/backup.sh shell
 
 # Auto-detect language (if possible)
-/2spektd:upgrade pkg/analytics
+/spec2:upgrade pkg/analytics
 ```
 
 ---
@@ -155,7 +155,7 @@ Each iteration shows:
 
 ### Validation Report
 
-Saved to `.2spektd/reports/{component}-{timestamp}.md`:
+Saved to `.spec2/reports/{component}-{timestamp}.md`:
 
 ```markdown
 # Validation Report: pkg/analytics
@@ -240,7 +240,7 @@ Total iterations: 3
 1. **Start Clean** — Commit changes before validation
 2. **Read Error Messages** — Specific line numbers provided
 3. **Let Loop Run** — Each iteration improves code
-4. **Use Reports** — Saved to `.2spektd/reports/`
+4. **Use Reports** — Saved to `.spec2/reports/`
 5. **Baseline Once** — First run creates architecture baseline
 
 ---

@@ -11,7 +11,7 @@
 
 ## Outputs
 
-1. **Subsystem Specification** (`.outline/specs/subsystem-NAME.md`)
+1. **Subsystem Specification** (`.spec2/specs/subsystem-NAME.md`)
    - Subsystem purpose
    - Component breakdown
    - Internal architecture
@@ -85,7 +85,7 @@ Subsystem spec is ready when:
 
 **Automated** (future):
 ```bash
-bash .outline/outline-strong/agents/tier2-spec-agent.sh system-spec.md "SubsystemName" output/subsystem-NAME.md
+bash .spec2/outline-strong/agents/tier2-spec-agent.sh system-spec.md "SubsystemName" output/subsystem-NAME.md
 ```
 
 ---
@@ -93,5 +93,5 @@ bash .outline/outline-strong/agents/tier2-spec-agent.sh system-spec.md "Subsyste
 ## Lock After Approval
 
 ```bash
-sha256sum .outline/specs/subsystem-NAME.md > .outline/outline-strong/locked/subsystem-NAME.md.lock
+sha256sum .spec2/specs/subsystem-NAME.md > .spec2/outline-strong/locked/subsystem-NAME.md.lock
 ```

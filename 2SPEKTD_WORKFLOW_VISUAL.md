@@ -1,7 +1,7 @@
-# 2spektd Workflow Visual Guide
+# spec2 Workflow Visual Guide
 
 **Date**: April 11, 2026
-**Purpose**: Visual representation of 2spektd's 4-tier progressive narrowing workflow
+**Purpose**: Visual representation of spec2's 4-tier progressive narrowing workflow
 
 ---
 

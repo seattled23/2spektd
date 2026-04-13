@@ -16,7 +16,7 @@
 - Isolation-based agent workflow
 - Anti-reward-hacking mechanisms
 
-### **2. Go Language Module** (`.outline/outline-strong/modules/go/`)
+### **2. Go Language Module** (`.spec2/outline-strong/modules/go/`)
 
 #### **Layer Scripts** (all implemented, executable):
 | Layer | Script | Purpose | Exit Code |
@@ -38,7 +38,7 @@
 - `README.md` — Module documentation
 - `install-tools.sh` — One-command tool installation
 
-### **3. Orchestration** (`.outline/outline-strong/`)
+### **3. Orchestration** (`.spec2/outline-strong/`)
 - `validate-component.sh` — Master validation runner
 - Works with all language modules
 - Clear pass/fail reporting
@@ -54,7 +54,7 @@
 ## ✅ Completed (All Phases)
 
 ### **Phase 2: TypeScript Module** ✅
-Created `.outline/outline-strong/modules/typescript/`:
+Created `.spec2/outline-strong/modules/typescript/`:
 - `layer-n1.sh` — tsc + eslint + vitest
 - `layer-0.sh` — tsc --strict --noEmit
 - `layer-1.sh` — TSDoc contract annotations
@@ -69,7 +69,7 @@ Created `.outline/outline-strong/modules/typescript/`:
 - `layer-10.sh` — Determinism verification
 
 ### **Phase 3: Python Module** ✅
-Created `.outline/outline-strong/modules/python/`:
+Created `.spec2/outline-strong/modules/python/`:
 - `layer-n1.sh` — pyright + pytest
 - `layer-0.sh` — pyright --strict
 - `layer-1.sh` — deal contract annotations
@@ -80,7 +80,7 @@ Created `.outline/outline-strong/modules/python/`:
 - ... (layers 6-10)
 
 ### **Phase 4: Shell Module** ✅
-Created `.outline/outline-strong/modules/shell/` (8 adapted layers):
+Created `.spec2/outline-strong/modules/shell/` (8 adapted layers):
 - `layer-n1.sh` — shellcheck + shfmt
 - `layer-0.sh` — shellcheck --severity=warning
 - `layer-2.sh` — bats tests
@@ -155,7 +155,7 @@ Implemented isolation-based workflow:
 ### **Validate Existing Go Component**:
 ```bash
 cd /home/swarm/TESSARA
-bash .outline/outline-strong/validate-component.sh pkg/jcs go
+bash .spec2/outline-strong/validate-component.sh pkg/jcs go
 ```
 
 **Expected**: Layer 1 failure (missing contracts)
@@ -176,7 +176,7 @@ Then re-run validation.
 
 ### **Install Missing Go Tools**:
 ```bash
-bash .outline/outline-strong/modules/go/install-tools.sh
+bash .spec2/outline-strong/modules/go/install-tools.sh
 ```
 
 ---
@@ -184,7 +184,7 @@ bash .outline/outline-strong/modules/go/install-tools.sh
 ## 📁 Directory Structure
 
 ```
-.outline/outline-strong/
+.spec2/outline-strong/
 ├── OUTLINE-STRONG-V2-SPEC.md       # Complete specification
 ├── IMPLEMENTATION-STATUS.md        # This file
 ├── validate-component.sh           # Master orchestrator
@@ -254,7 +254,7 @@ bash .outline/outline-strong/modules/go/install-tools.sh
 
 ### **Issue 1: Hollow Scanner False Positives**
 **Problem**: Validation functions ending with `return nil` flagged as hollow
-**Workaround**: Add to `.outline/outline-strong/hollow-allowlist.txt`
+**Workaround**: Add to `.spec2/outline-strong/hollow-allowlist.txt`
 **Fix**: Refine regex patterns in `layer-3.sh`
 
 ### **Issue 2: gocyclo Not Always Installed**
@@ -271,9 +271,9 @@ bash .outline/outline-strong/modules/go/install-tools.sh
 
 ## 📚 References
 
-- **Specification**: `.outline/OUTLINE-STRONG-V2-SPEC.md`
-- **Go Module Docs**: `.outline/outline-strong/modules/go/README.md`
-- **Existing Validation**: `.outline/outline-strong/comp-XX/validation-report.md`
+- **Specification**: `.spec2/OUTLINE-STRONG-V2-SPEC.md`
+- **Go Module Docs**: `.spec2/outline-strong/modules/go/README.md`
+- **Existing Validation**: `.spec2/outline-strong/comp-XX/validation-report.md`
 - **TESSARA CLAUDE.md**: `/home/swarm/TESSARA/CLAUDE.md` (VF commands)
 
 ---

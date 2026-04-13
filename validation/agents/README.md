@@ -69,19 +69,19 @@ Full workflow automation:
 **Full workflow (from scratch)**:
 ```bash
 cd /home/swarm/TESSARA
-bash .outline/outline-strong/agents/orchestrate-build.sh "Build new analytics component"
+bash .spec2/outline-strong/agents/orchestrate-build.sh "Build new analytics component"
 ```
 
 **Individual agents**:
 ```bash
 # Generate tier1 spec
-bash .outline/outline-strong/agents/tier1-spec-agent.sh "requirements.md" "output/system-spec.md"
+bash .spec2/outline-strong/agents/tier1-spec-agent.sh "requirements.md" "output/system-spec.md"
 
 # Generate component spec
-bash .outline/outline-strong/agents/tier3-spec-agent.sh "subsystem-spec.md" "ComponentName" "output/comp-spec.md"
+bash .spec2/outline-strong/agents/tier3-spec-agent.sh "subsystem-spec.md" "ComponentName" "output/comp-spec.md"
 
 # Generate code
-bash .outline/outline-strong/agents/code-gen-agent.sh "comp-spec.md" "integration-spec.md" "artifacts/" "output/implementation.go"
+bash .spec2/outline-strong/agents/code-gen-agent.sh "comp-spec.md" "integration-spec.md" "artifacts/" "output/implementation.go"
 ```
 
 ---
@@ -101,7 +101,7 @@ bash .outline/outline-strong/agents/code-gen-agent.sh "comp-spec.md" "integratio
 
 ## Artifact Lock Mechanism
 
-Locked files stored in `.outline/outline-strong/locked/`:
+Locked files stored in `.spec2/outline-strong/locked/`:
 - `system-spec.md.lock` (SHA-256 hash)
 - `subsystem-NAME.md.lock`
 - `comp-NAME.md.lock`

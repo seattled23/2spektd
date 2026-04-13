@@ -92,7 +92,7 @@ Coverage target: ≥80%
   "min_coverage": 80
 }
 
-Output: 4 separate files in .outline/outline-strong/comp-NAME/artifacts/
+Output: 4 separate files in .spec2/outline-strong/comp-NAME/artifacts/
 ```
 
 ---
@@ -118,7 +118,7 @@ Artifacts are ready when:
 
 **Automated** (future):
 ```bash
-bash .outline/outline-strong/agents/artifact-gen-agent.sh comp-NAME.md integration.md output/artifacts/
+bash .spec2/outline-strong/agents/artifact-gen-agent.sh comp-NAME.md integration.md output/artifacts/
 ```
 
 ---

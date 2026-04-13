@@ -79,12 +79,12 @@ Simplified metrics:
 **Validate component**:
 ```bash
 cd /home/swarm/TESSARA
-bash .outline/outline-strong/validate-component.sh scripts/deploy shell
+bash .spec2/outline-strong/validate-component.sh scripts/deploy shell
 ```
 
 **Run single layer**:
 ```bash
-bash .outline/outline-strong/modules/shell/layer-0.sh scripts/deploy
+bash .spec2/outline-strong/modules/shell/layer-0.sh scripts/deploy
 ```
 
 ---

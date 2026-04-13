@@ -67,7 +67,7 @@ Once approved, artifacts **cannot be altered**:
 Each language gets a validation module with tools for each applicable layer:
 
 ```
-.outline/outline-strong/modules/
+.spec2/outline-strong/modules/
 ├── go/
 │   ├── layer-n1.sh   # Self-validation (go build/vet/test)
 │   ├── layer-0.sh    # Static analysis (go vet)
@@ -808,7 +808,7 @@ Output: src/Y.<ext> (overwrite)
 Each language gets a validation module directory:
 
 ```
-.outline/outline-strong/modules/
+.spec2/outline-strong/modules/
 ├── go/
 │   ├── README.md               # Tool installation, usage
 │   ├── layer-n1.sh             # Self-validation script
@@ -852,7 +852,7 @@ Master validation runner:
 
 ```bash
 #!/bin/bash
-# .outline/outline-strong/validate-component.sh
+# .spec2/outline-strong/validate-component.sh
 
 set -e
 
@@ -864,7 +864,7 @@ if [[ -z "$COMPONENT" || -z "$LANGUAGE" ]]; then
     exit 1
 fi
 
-MODULE_DIR=".outline/outline-strong/modules/$LANGUAGE"
+MODULE_DIR=".spec2/outline-strong/modules/$LANGUAGE"
 if [[ ! -d "$MODULE_DIR" ]]; then
     echo "Error: Language module not found: $LANGUAGE"
     exit 1
@@ -898,8 +898,8 @@ exit 0
 
 **Usage**:
 ```bash
-.outline/outline-strong/validate-component.sh pkg/fhir go
-.outline/outline-strong/validate-component.sh website/components/Hero typescript
+.spec2/outline-strong/validate-component.sh pkg/fhir go
+.spec2/outline-strong/validate-component.sh website/components/Hero typescript
 ```
 
 ---
@@ -907,7 +907,7 @@ exit 0
 ## Implementation Roadmap
 
 ### **Phase 0: Setup (Week 1)**
-1. Create directory structure (`.outline/outline-strong/modules/`)
+1. Create directory structure (`.spec2/outline-strong/modules/`)
 2. Install language-specific tools (gosec, pyright, shellcheck, etc.)
 3. Test each tool independently
 
@@ -970,7 +970,7 @@ exit 0
 
 ## References
 
-- TESSARA existing Outline-Strong: `.outline/outline-strong/`
+- TESSARA existing Outline-Strong: `.spec2/outline-strong/`
 - Original ODIN Outline-Driven Development: (external reference needed)
 - Go validation tools: gosec, govulncheck, gocyclo
 - TypeScript validation tools: tsc, eslint, vitest

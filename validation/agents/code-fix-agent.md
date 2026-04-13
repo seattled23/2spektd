@@ -133,7 +133,7 @@ To stop: Press Ctrl+C, then investigate:
 
 **Automated** (future):
 ```bash
-bash .outline/outline-strong/agents/code-fix-agent.sh comp-NAME.md integration.md artifacts/ current-code/ errors.txt 1 output/
+bash .spec2/outline-strong/agents/code-fix-agent.sh comp-NAME.md integration.md artifacts/ current-code/ errors.txt 1 output/
 ```
 
 ---

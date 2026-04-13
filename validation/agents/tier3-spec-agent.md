@@ -11,7 +11,7 @@
 
 ## Outputs
 
-1. **Component Specification** (`.outline/specs/comp-NAME.md`)
+1. **Component Specification** (`.spec2/specs/comp-NAME.md`)
    - Function signatures
    - Acceptance criteria
    - Test requirements
@@ -96,7 +96,7 @@ Component spec is ready when:
 
 **Automated** (future):
 ```bash
-bash .outline/outline-strong/agents/tier3-spec-agent.sh subsystem-NAME.md "ComponentName" output/comp-NAME.md
+bash .spec2/outline-strong/agents/tier3-spec-agent.sh subsystem-NAME.md "ComponentName" output/comp-NAME.md
 ```
 
 ---
@@ -104,7 +104,7 @@ bash .outline/outline-strong/agents/tier3-spec-agent.sh subsystem-NAME.md "Compo
 ## Lock After Approval
 
 ```bash
-sha256sum .outline/specs/comp-NAME.md > .outline/outline-strong/locked/comp-NAME.md.lock
+sha256sum .spec2/specs/comp-NAME.md > .spec2/outline-strong/locked/comp-NAME.md.lock
 ```
 
 **CRITICAL**: Once locked, this spec cannot be modified. All validation artifacts and code must conform to THIS spec.

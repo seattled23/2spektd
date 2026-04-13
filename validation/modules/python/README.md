@@ -127,12 +127,12 @@ Detects:
 **Validate component**:
 ```bash
 cd /home/swarm/TESSARA
-bash .outline/outline-strong/validate-component.sh scripts python
+bash .spec2/outline-strong/validate-component.sh scripts python
 ```
 
 **Run single layer**:
 ```bash
-bash .outline/outline-strong/modules/python/layer-1.sh scripts
+bash .spec2/outline-strong/modules/python/layer-1.sh scripts
 ```
 
 ---

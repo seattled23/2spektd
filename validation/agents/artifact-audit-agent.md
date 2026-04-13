@@ -99,7 +99,7 @@ Audit passes when:
 
 **Automated** (future):
 ```bash
-bash .outline/outline-strong/agents/artifact-audit-agent.sh comp-NAME.md integration.md artifacts/ output/audit-report.md
+bash .spec2/outline-strong/agents/artifact-audit-agent.sh comp-NAME.md integration.md artifacts/ output/audit-report.md
 ```
 
 ---
@@ -113,7 +113,7 @@ bash .outline/outline-strong/agents/artifact-audit-agent.sh comp-NAME.md integra
 ## Lock After Passing Audit
 
 ```bash
-cd .outline/outline-strong/comp-NAME/artifacts/
+cd .spec2/outline-strong/comp-NAME/artifacts/
 tar -czf ../artifacts.tar.gz *
 sha256sum ../artifacts.tar.gz > ../../locked/comp-NAME-artifacts.tar.gz.lock
 ```

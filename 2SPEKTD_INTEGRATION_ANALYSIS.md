@@ -1,7 +1,7 @@
-# 2spektd Integration Analysis & Extension Design
+# spec2 Integration Analysis & Extension Design
 
 **Date**: April 11, 2026
-**Purpose**: Analyze current 2spektd capabilities and design extensions for sub-agent integration
+**Purpose**: Analyze current spec2 capabilities and design extensions for sub-agent integration
 
 ---
 
@@ -9,7 +9,7 @@
 
 ### What Exists ✅
 
-**Location**: `/home/swarm/2spektd/validation/`
+**Location**: `/home/swarm/spec2/validation/`
 
 **Implementation Status** (from IMPLEMENTATION-STATUS.md):
 - ✅ **All 4 language modules complete**: Go (12 layers), TypeScript (12 layers), Python (12 layers), Shell (8 layers)
@@ -18,7 +18,7 @@
 - ✅ **12-layer validation stack**: L-1 (build/test) through L10 (determinism)
 - ✅ **Anti-reward-hacking features**: Context isolation, immutable artifacts, one-shot code gen
 
-**Skill Definition**: `~/.claude/skills/2spektd-new/SKILL.md`
+**Skill Definition**: `~/.claude/skills/spec2-new/SKILL.md`
 - Currently **documentation only** - no executable implementation
 - Describes the workflow but doesn't launch it
 
@@ -32,7 +32,7 @@
 # Script prompts:
 "📝 Action required (NEW session):
  Invoke: 'Generate Tier 1 spec from requirements'
- Save to: .outline/specs/system-spec.md"
+ Save to: .spec2/specs/system-spec.md"
 
 # User manually:
 1. Opens new Claude Code session
@@ -64,36 +64,36 @@
 ### Gap 2: Skill Doesn't Execute ❌
 
 **What's Missing**:
-- `/2spektd:new "<requirements>"` currently does nothing
+- `/spec2:new "<requirements>"` currently does nothing
 - Skill file is documentation, not implementation
 - No connection between skill invocation and orchestrator
 
 **Impact**:
-- User expectation: `/2spektd:new` should launch the workflow
+- User expectation: `/spec2:new` should launch the workflow
 - Reality: User must manually run `orchestrate-build.sh`
 - Inconsistent with other Claude Code skills
 
-### Gap 3: Sub-Agents Can't Access 2spektd ❌
+### Gap 3: Sub-Agents Can't Access spec2 ❌
 
 **What's Missing**:
-- Task agents (launched via Task tool) can't invoke `/2spektd:new`
-- No API/function interface for sub-agents to trigger 2spektd
+- Task agents (launched via Task tool) can't invoke `/spec2:new`
+- No API/function interface for sub-agents to trigger spec2
 - Skill invocations are not available in Task agent tool sets
 
 **Impact**:
-- Can't delegate "build feature X with 2spektd validation" to a sub-agent
+- Can't delegate "build feature X with spec2 validation" to a sub-agent
 - Forces main agent to orchestrate, bloating context window
-- Prevents parallel 2spektd builds (can't launch 3 components simultaneously)
+- Prevents parallel spec2 builds (can't launch 3 components simultaneously)
 
 ### Gap 4: No Gemini CLI Integration ❌
 
 **What's Missing**:
-- Gemini CLI has no awareness of 2spektd
+- Gemini CLI has no awareness of spec2
 - No routing mechanism to hand off complex tasks to Claude Code
 - No shared state/artifact passing between Gemini and Claude
 
 **Impact**:
-- User must manually decide: "This task needs 2spektd, switch to Claude Code"
+- User must manually decide: "This task needs spec2, switch to Claude Code"
 - Can't leverage Gemini's strengths (research, analysis) + Claude's automation
 - No hybrid workflows
 
@@ -107,11 +107,11 @@
 
 **Implementation**:
 ```typescript
-// New file: ~/.claude/skills/2spektd-new/orchestrate.ts
+// New file: ~/.claude/skills/spec2-new/orchestrate.ts
 
 import { Task } from '@claude/sdk';
 
-export async function orchestrate2spektd(requirements: string) {
+export async function orchestratespec2(requirements: string) {
   // Phase 1: Tier 1 Spec
   const tier1Agent = await Task.launch({
     subagent_type: 'odin:architect',
@@ -128,7 +128,7 @@ export async function orchestrate2spektd(requirements: string) {
   });
 
   const systemSpec = await tier1Agent.result();
-  await fs.writeFile('.outline/specs/system-spec.md', systemSpec);
+  await fs.writeFile('.spec2/specs/system-spec.md', systemSpec);
   await lockSpec('system-spec.md');
 
   // Phase 2: Tier 2 Specs (parallel)
@@ -167,22 +167,22 @@ export async function orchestrate2spektd(requirements: string) {
 
 ### Extension 2: Executable Skill Implementation
 
-**Goal**: Make `/2spektd:new "<requirements>"` actually launch the orchestrator
+**Goal**: Make `/spec2:new "<requirements>"` actually launch the orchestrator
 
 **Implementation**:
 ```typescript
-// ~/.claude/skills/2spektd-new/skill.ts
+// ~/.claude/skills/spec2-new/skill.ts
 
 export async function execute(requirements: string) {
   console.log('╔════════════════════════════════════════════════════════════════╗');
-  console.log('║     2spektd: Building with Outline-Strong Validation          ║');
+  console.log('║     spec2: Building with Outline-Strong Validation          ║');
   console.log('╚════════════════════════════════════════════════════════════════╝');
   console.log('');
   console.log(`Requirements: ${requirements}`);
   console.log('');
 
   // Launch orchestration
-  const result = await orchestrate2spektd(requirements);
+  const result = await orchestratespec2(requirements);
 
   // Report final status
   console.log('');
@@ -210,7 +210,7 @@ arguments:
 ```
 
 **Benefits**:
-- User expectation met: `/2spektd:new` works
+- User expectation met: `/spec2:new` works
 - Consistent with Claude Code skill model
 - Clear success/failure reporting
 - Artifact paths returned for downstream use
@@ -221,17 +221,17 @@ arguments:
 
 ### Extension 3: Sub-Agent API
 
-**Goal**: Allow Task agents to trigger 2spektd builds
+**Goal**: Allow Task agents to trigger spec2 builds
 
 **Design Option A: Tool-Based**
 
-Create a new MCP tool `build_with_2spektd`:
+Create a new MCP tool `build_with_spec2`:
 ```typescript
-// Add to CompanyOS MCP server or create dedicated 2spektd MCP server
+// Add to CompanyOS MCP server or create dedicated spec2 MCP server
 
 {
-  "name": "build_with_2spektd",
-  "description": "Build a component using 2spektd Outline-Strong validation",
+  "name": "build_with_spec2",
+  "description": "Build a component using spec2 Outline-Strong validation",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -256,10 +256,10 @@ Create a new MCP tool `build_with_2spektd`:
 **Usage in sub-agent**:
 ```typescript
 // In Task agent prompt:
-"When you need to build a validated component, use the build_with_2spektd tool:
+"When you need to build a validated component, use the build_with_spec2 tool:
 
 Example:
-<invoke name="build_with_2spektd">
+<invoke name="build_with_spec2">
   <param name="requirements">User authentication service with JWT</param>
   <param name="language">typescript</param>
   <param name="output_path">src/services/auth</param>
@@ -286,7 +286,7 @@ Allow Task agents to invoke skills via a meta-tool:
     "properties": {
       "skill": {
         "type": "string",
-        "description": "Skill name (e.g., '2spektd:new')"
+        "description": "Skill name (e.g., 'spec2:new')"
       },
       "args": {
         "type": "string",
@@ -300,7 +300,7 @@ Allow Task agents to invoke skills via a meta-tool:
 **Usage**:
 ```typescript
 <invoke name="invoke_skill">
-  <param name="skill">2spektd:new</param>
+  <param name="skill">spec2:new</param>
   <param name="args">Build analytics dashboard</param>
 </invoke>
 ```
@@ -321,7 +321,7 @@ Allow Task agents to invoke skills via a meta-tool:
 
 ### Extension 4: Gemini CLI Integration
 
-**Goal**: Route complex tasks from Gemini CLI to Claude Code's 2spektd
+**Goal**: Route complex tasks from Gemini CLI to Claude Code's spec2
 
 **Architecture**:
 ```
@@ -339,7 +339,7 @@ Allow Task agents to invoke skills via a meta-tool:
               ┌─────────────┐      ┌──────────────────┐
               │   Router    │─────▶│  Claude Code     │
               │             │      │                  │
-              │ - Analyze   │      │  /2spektd:new    │
+              │ - Analyze   │      │  /spec2:new    │
               │ - Decide    │      │                  │
               │ - Route     │      │  (orchestrate)   │
               │ - Bridge    │      │                  │
@@ -355,10 +355,10 @@ Allow Task agents to invoke skills via a meta-tool:
 
 **Implementation**:
 
-**Step 1: Gemini CLI Plugin** (`~/.gemini/plugins/2spektd-bridge.sh`):
+**Step 1: Gemini CLI Plugin** (`~/.gemini/plugins/spec2-bridge.sh`):
 ```bash
 #!/bin/bash
-# Gemini CLI plugin to route tasks to Claude Code 2spektd
+# Gemini CLI plugin to route tasks to Claude Code spec2
 
 function gemini_build() {
   local requirements="$1"
@@ -372,12 +372,12 @@ function gemini_build() {
     echo ""
 
     # Invoke Claude Code via API or CLI
-    claude-code skill /2spektd:new "$requirements" \
+    claude-code skill /spec2:new "$requirements" \
       --language="$language" \
-      --return-json > /tmp/2spektd-result.json
+      --return-json > /tmp/spec2-result.json
 
     # Parse result and continue in Gemini
-    local output_path=$(jq -r '.outputPath' /tmp/2spektd-result.json)
+    local output_path=$(jq -r '.outputPath' /tmp/spec2-result.json)
 
     echo "✅ Component built at: $output_path"
     echo ""
@@ -459,22 +459,22 @@ app.post('/api/skills/invoke', async (req, res) => {
    - Add parallel execution for independent phases
 
 2. ✅ Executable skill implementation (4 hours)
-   - Make `/2spektd:new` launch orchestrator
+   - Make `/spec2:new` launch orchestrator
    - Add argument parsing and validation
    - Return structured results
 
-**Deliverable**: `/2spektd:new "<requirements>"` works end-to-end
+**Deliverable**: `/spec2:new "<requirements>"` works end-to-end
 
 ### Phase B: Sub-Agent Integration (12 hours)
 
 **Week 2** (12 hours):
 1. ✅ MCP tool implementation (8 hours)
-   - Create `build_with_2spektd` tool
+   - Create `build_with_spec2` tool
    - Add to CompanyOS MCP server
    - Document sub-agent usage
 
 2. ✅ Testing (4 hours)
-   - Test Task agent invoking 2spektd
+   - Test Task agent invoking spec2
    - Verify parallel builds (3 components simultaneously)
    - Validate artifact passing
 
@@ -509,7 +509,7 @@ app.post('/api/skills/invoke', async (req, res) => {
 ### Test Case 1: Direct Invocation
 ```bash
 # User runs:
-/2spektd:new "Build user authentication service with JWT tokens"
+/spec2:new "Build user authentication service with JWT tokens"
 
 # Expected:
 ✅ Tier 1 spec generated
@@ -529,7 +529,7 @@ app.post('/api/skills/invoke', async (req, res) => {
 // Main agent task:
 const result = await Task.launch({
   subagent_type: 'odin:backend-architect',
-  prompt: `Build a REST API for user management using 2spektd validation.
+  prompt: `Build a REST API for user management using spec2 validation.
 
   Requirements:
   - CRUD operations (Create, Read, Update, Delete users)
@@ -537,13 +537,13 @@ const result = await Task.launch({
   - Role-based access control
   - PostgreSQL persistence
 
-  Use the build_with_2spektd tool to generate validated code.`,
+  Use the build_with_spec2 tool to generate validated code.`,
   description: 'Build user management API'
 });
 
 // Expected:
-✅ Sub-agent invokes build_with_2spektd tool
-✅ 2spektd workflow executes in background
+✅ Sub-agent invokes build_with_spec2 tool
+✅ spec2 workflow executes in background
 ✅ Sub-agent receives validated code path
 ✅ Sub-agent continues with integration work
 ✅ Main context window unaffected
@@ -557,7 +557,7 @@ $ gemini build "Create a distributed task queue with at-least-once delivery guar
 # Expected output:
 🔀 Routing to Claude Code (complexity: 9/10)
 
-Launching 2spektd build...
+Launching spec2 build...
 ✅ Component built at: pkg/taskqueue
    - 4 subsystems validated
    - 12 components passing all layers
@@ -577,8 +577,8 @@ Based on the validated implementation, recommended deployment:
 ## VI. SUCCESS CRITERIA
 
 ### Functional
-- [ ] `/2spektd:new` launches and completes build without manual intervention
-- [ ] Task agents can invoke 2spektd via tool
+- [ ] `/spec2:new` launches and completes build without manual intervention
+- [ ] Task agents can invoke spec2 via tool
 - [ ] Gemini CLI routes complex tasks to Claude Code
 - [ ] All 3 integration methods produce valid, tested code
 
@@ -628,7 +628,7 @@ Based on the validated implementation, recommended deployment:
 
 ## VIII. ALTERNATIVES CONSIDERED
 
-### Alternative 1: Embed 2spektd in Claude Code Core
+### Alternative 1: Embed spec2 in Claude Code Core
 **Pros**: First-class integration, no skills needed
 **Cons**: Bloats Claude Code, tight coupling, harder to update
 **Decision**: Rejected - keep as modular skill
@@ -648,7 +648,7 @@ Based on the validated implementation, recommended deployment:
 ## IX. CONCLUSION
 
 ### Current State
-✅ 2spektd **fully functional** for manual orchestration
+✅ spec2 **fully functional** for manual orchestration
 ✅ All language modules complete
 ✅ 12-layer validation working
 ❌ No automated orchestration
@@ -656,7 +656,7 @@ Based on the validated implementation, recommended deployment:
 ❌ No Gemini CLI integration
 
 ### After Extensions
-✅ `/2spektd:new` works automatically
+✅ `/spec2:new` works automatically
 ✅ Task agents can build validated components
 ✅ Gemini CLI routes complex builds to Claude Code
 ✅ Production-ready for team use

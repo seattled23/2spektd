@@ -1,13 +1,13 @@
-# Contributing to 2spektd
+# Contributing to spec2
 
-Thank you for your interest in contributing to 2spektd!
+Thank you for your interest in contributing to spec2!
 
 ---
 
 ## Getting Started
 
 1. **Fork the repository**
-2. **Clone your fork**: `git clone https://github.com/seattled23/2spektd.git`
+2. **Clone your fork**: `git clone https://github.com/seattled23/spec2.git`
 3. **Create a branch**: `git checkout -b feature/your-feature-name`
 4. **Make your changes**
 5. **Test your changes** (see below)
@@ -53,9 +53,9 @@ python mcp-server/server.py
 # Add to ~/.claude.json:
 {
   "mcpServers": {
-    "2spektd": {
+    "spec2": {
       "command": "python",
-      "args": ["/path/to/2spektd/mcp-server/server.py"]
+      "args": ["/path/to/spec2/mcp-server/server.py"]
     }
   }
 }
@@ -72,11 +72,11 @@ bash validation/validate-component.sh validation/modules/go go
 ### Test Skills
 ```bash
 # Symlink skills
-ln -s $(pwd)/skills/2spektd-new ~/.claude/skills/
-ln -s $(pwd)/skills/2spektd-upgrade ~/.claude/skills/
+ln -s $(pwd)/skills/spec2-new ~/.claude/skills/
+ln -s $(pwd)/skills/spec2-upgrade ~/.claude/skills/
 
 # Test in Claude Code
-/2spektd:upgrade validation/modules/go go
+/spec2:upgrade validation/modules/go go
 ```
 
 ---

@@ -20,34 +20,34 @@ Outline-Strong v2.0 is a **12-layer validation system** for deterministic code q
 ### **Validate a Component**
 ```bash
 cd /home/swarm/TESSARA
-bash .outline/outline-strong/validate-component.sh <component> <language>
+bash .spec2/outline-strong/validate-component.sh <component> <language>
 ```
 
 **Examples**:
 ```bash
 # Go component
-bash .outline/outline-strong/validate-component.sh pkg/jcs go
-bash .outline/outline-strong/validate-component.sh pkg/fhir go
-bash .outline/outline-strong/validate-component.sh internal/scm go
+bash .spec2/outline-strong/validate-component.sh pkg/jcs go
+bash .spec2/outline-strong/validate-component.sh pkg/fhir go
+bash .spec2/outline-strong/validate-component.sh internal/scm go
 
 # TypeScript (when module built)
-bash .outline/outline-strong/validate-component.sh website/src/components typescript
+bash .spec2/outline-strong/validate-component.sh website/src/components typescript
 
 # Python (when module built)
-bash .outline/outline-strong/validate-component.sh scripts python
+bash .spec2/outline-strong/validate-component.sh scripts python
 ```
 
 ### **Install Go Validation Tools**
 ```bash
-bash .outline/outline-strong/modules/go/install-tools.sh
+bash .spec2/outline-strong/modules/go/install-tools.sh
 ```
 
 Installs: golangci-lint, gosec, govulncheck, gocyclo, staticcheck
 
 ### **Run Single Layer**
 ```bash
-bash .outline/outline-strong/modules/go/layer-1.sh pkg/jcs
-bash .outline/outline-strong/modules/go/layer-2.sh pkg/jcs
+bash .spec2/outline-strong/modules/go/layer-1.sh pkg/jcs
+bash .spec2/outline-strong/modules/go/layer-2.sh pkg/jcs
 # ... etc
 ```
 
@@ -134,14 +134,14 @@ func Canonicalize(data []byte) ([]byte, error) {
 **Solution**: No empty functions, tests must have assertions, no silent error swallowing
 
 ### **Issue**: "gocyclo not found"
-**Solution**: Run `bash .outline/outline-strong/modules/go/install-tools.sh`
+**Solution**: Run `bash .spec2/outline-strong/modules/go/install-tools.sh`
 
 ---
 
 ## File Locations
 
 ```
-.outline/outline-strong/
+.spec2/outline-strong/
 ├── OUTLINE-STRONG-V2-SPEC.md       # Complete 61KB specification
 ├── IMPLEMENTATION-STATUS.md        # 14KB status tracker
 ├── SESSION-2026-04-05.md           # Build session summary
@@ -179,7 +179,7 @@ func Canonicalize(data []byte) ([]byte, error) {
 
 ### **To Test on TESSARA**:
 1. Add contracts to `pkg/jcs/canonicalize.go` and `pkg/jcs/number.go`
-2. Run validation: `bash .outline/outline-strong/validate-component.sh pkg/jcs go`
+2. Run validation: `bash .spec2/outline-strong/validate-component.sh pkg/jcs go`
 3. Fix any failures
 4. Repeat for all 10 components
 

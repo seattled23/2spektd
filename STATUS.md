@@ -1,4 +1,4 @@
-# 2spektd — Package Status
+# spec2 — Package Status
 
 **Version**: 1.0.0
 **Date**: 2026-04-05
@@ -16,8 +16,8 @@
 - 400+ lines
 
 ✅ **Skills**
-- `/2spektd:new` — Build new component (spec → artifact → code → validate)
-- `/2spektd:upgrade` — Validate/upgrade existing code
+- `/spec2:new` — Build new component (spec → artifact → code → validate)
+- `/spec2:upgrade` — Validate/upgrade existing code
 - Works in Claude Code and Gemini CLI
 
 ✅ **Validation Framework** (`validation/`)
@@ -31,8 +31,8 @@
 ✅ **User Docs**
 - `README.md` — Main documentation (comprehensive)
 - `validation/QUICK-START.md` — Quick reference
-- `skills/2spektd-new/SKILL.md` — New component workflow
-- `skills/2spektd-upgrade/SKILL.md` — Upgrade workflow
+- `skills/spec2-new/SKILL.md` — New component workflow
+- `skills/spec2-upgrade/SKILL.md` — Upgrade workflow
 
 ✅ **Developer Docs**
 - `CONTRIBUTING.md` — Contribution guide
@@ -68,8 +68,8 @@
 
 ```bash
 # Clone repository
-git clone https://github.com/seattled23/2spektd.git
-cd 2spektd
+git clone https://github.com/seattled23/spec2.git
+cd spec2
 
 # Run installer
 bash install.sh
@@ -87,15 +87,15 @@ bash validation/modules/python/install-tools.sh
 bash validation/modules/shell/install-tools.sh
 
 # Install skills
-ln -s $(pwd)/skills/2spektd-new ~/.claude/skills/
-ln -s $(pwd)/skills/2spektd-upgrade ~/.claude/skills/
+ln -s $(pwd)/skills/spec2-new ~/.claude/skills/
+ln -s $(pwd)/skills/spec2-upgrade ~/.claude/skills/
 
 # Configure MCP server (add to ~/.claude.json)
 {
   "mcpServers": {
-    "2spektd": {
+    "spec2": {
       "command": "python",
-      "args": ["/path/to/2spektd/mcp-server/server.py"]
+      "args": ["/path/to/spec2/mcp-server/server.py"]
     }
   }
 }
@@ -108,13 +108,13 @@ ln -s $(pwd)/skills/2spektd-upgrade ~/.claude/skills/
 ### Build New Component
 ```bash
 # In Claude Code or Gemini CLI:
-/2spektd:new "Build analytics dashboard with real-time metrics"
+/spec2:new "Build analytics dashboard with real-time metrics"
 ```
 
 ### Validate Existing Code
 ```bash
 # In Claude Code or Gemini CLI:
-/2spektd:upgrade pkg/mycomponent go
+/spec2:upgrade pkg/mycomponent go
 ```
 
 ### Direct Validation
@@ -145,7 +145,7 @@ install_validation_tools(language="all")
 
 **Validation works**:
 ```bash
-cd /home/swarm/2spektd
+cd /home/swarm/spec2
 bash validation/validate-component.sh validation/modules/go go
 ```
 Expected: Some layers fail (used for testing)
@@ -183,12 +183,12 @@ Expected: Server starts, awaits stdio input
 
 1. **Create GitHub Repository**
    ```bash
-   cd /home/swarm/2spektd
+   cd /home/swarm/spec2
    git init
    git add .
-   git commit -m "feat: initial release of 2spektd v1.0.0"
+   git commit -m "feat: initial release of spec2 v1.0.0"
    git branch -M main
-   git remote add origin https://github.com/seattled23/2spektd.git
+   git remote add origin https://github.com/seattled23/spec2.git
    git push -u origin main
    ```
 
@@ -245,8 +245,8 @@ Expected: Server starts, awaits stdio input
 
 ## Support
 
-- **Issues**: https://github.com/seattled23/2spektd/issues
-- **Discussions**: https://github.com/seattled23/2spektd/discussions
+- **Issues**: https://github.com/seattled23/spec2/issues
+- **Discussions**: https://github.com/seattled23/spec2/discussions
 - **Email**: seattled23@users.noreply.github.com
 
 ---

@@ -103,7 +103,7 @@ Code is ready when:
 
 **Automated** (future):
 ```bash
-bash .outline/outline-strong/agents/code-gen-agent.sh comp-NAME.md integration.md artifacts/ output/
+bash .spec2/outline-strong/agents/code-gen-agent.sh comp-NAME.md integration.md artifacts/ output/
 ```
 
 ---

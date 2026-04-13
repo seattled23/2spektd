@@ -145,12 +145,12 @@ Detects:
 **Validate component**:
 ```bash
 cd /home/swarm/TESSARA
-bash .outline/outline-strong/validate-component.sh website/src/components typescript
+bash .spec2/outline-strong/validate-component.sh website/src/components typescript
 ```
 
 **Run single layer**:
 ```bash
-bash .outline/outline-strong/modules/typescript/layer-1.sh website/src/components
+bash .spec2/outline-strong/modules/typescript/layer-1.sh website/src/components
 ```
 
 ---

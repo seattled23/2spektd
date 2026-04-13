@@ -20,6 +20,7 @@ import { validateSystemSpec } from './validators/tier1-validator.js';
 import { validateSubsystemSpec } from './validators/tier2-validator.js';
 import { validateComponentSpec } from './validators/tier3-validator.js';
 import { validateIntegrationSpec } from './validators/tier4-validator.js';
+import { validateArtifacts } from './validators/artifact-validator.js';
 import { alignSubsystemWave, alignComponentWave } from './validators/wave-alignment.js';
 import { buildRegenerationPrompt } from './utils/regenerate.js';
 import { getLLMClient } from './utils/llm.js';
@@ -141,16 +142,101 @@ Generate a high-level system architecture specification (~5 pages) that identifi
   const failedSubsystems = subsystemValidations.filter(v => !v.validation.pass);
   if (failedSubsystems.length > 0) {
     console.log(`\n  ⚠️ ${failedSubsystems.length} subsystem(s) failed validation. Regenerating...\n`);
-    // TODO: Implement regeneration loop for failed subsystems
-    // For now, proceed (will add in next iteration)
+
+    // Regenerate failed subsystems
+    for (const failed of failedSubsystems) {
+      console.log(`  Regenerating ${failed.name}...\n`);
+
+      for (let attempt = 1; attempt <= MAX_REGENERATION_ATTEMPTS; attempt++) {
+        // Build prompt with feedback
+        const llm = getLLMClient();
+        const prompt = attempt === 1
+          ? `Generate a Tier 2 Subsystem Specification.
+
+**System Context:**
+${systemSpec}
+
+**Your Focus:** ${failed.name}
+
+**Your Task:**
+Generate a detailed subsystem specification (~8 pages) that identifies:
+1. Subsystem Overview
+2. Components (WHAT components exist in this subsystem, not function-level design)
+3. Dependencies (what this subsystem needs from other subsystems)
+4. Test Strategy (how to test this subsystem)
+
+**Scope:**
+- Identify COMPONENTS only (not individual functions yet - that's Tier 3)
+- Each component should have: name, purpose, key responsibilities
+- Focus on what EXISTS, not how it's implemented
+
+**Output Format:**
+# Subsystem: ${failed.name}
+
+## Overview
+[What does this subsystem do? How does it fit in the system?]
+
+## Components
+### Component: [Name]
+**Purpose:** [What does this component do?]
+**Responsibilities:**
+- [Responsibility 1]
+- [Responsibility 2]
+
+### Component: [Name]
+...
+
+## Dependencies
+**Requires from other subsystems:**
+- [Subsystem A]: [What is needed]
+- [Subsystem B]: [What is needed]
+
+**Provides to other subsystems:**
+- [What this subsystem exposes]
+
+## Test Strategy
+- [How to test this subsystem]
+- [Key test scenarios]
+
+**CRITICAL:** Identify the RIGHT components. Tier 3 will design each component in detail.`
+          : buildRegenerationPrompt({
+              originalPrompt: systemSpec,
+              previousAttempt: failed.spec,
+              validatorFeedback: failed.validation.feedbackForNextAttempt,
+              issues: failed.validation.issues,
+              attemptNumber: attempt + 1,
+            });
+
+        const response = await llm.prompt(prompt);
+        const newSpec = response.content;
+
+        // Re-validate
+        const validation = await validateSubsystemSpec(systemSpec, failed.name, newSpec);
+
+        if (validation.pass) {
+          // Update subsystemSpecs map
+          subsystemSpecs.set(failed.name, newSpec);
+          console.log(`    ✓ ${failed.name} passed after ${attempt + 1} attempt(s)\n`);
+          break;
+        }
+
+        if (attempt === MAX_REGENERATION_ATTEMPTS) {
+          throw new Error(`${failed.name} validation failed after ${MAX_REGENERATION_ATTEMPTS} attempts`);
+        }
+      }
+    }
   }
 
   // Wave alignment check
   console.log('\n  Checking wave alignment...\n');
   const alignment = await alignSubsystemWave(systemSpec, subsystemSpecs);
   if (!alignment.aligned) {
-    console.log(`  ⚠️ Wave alignment issues detected. Would regenerate affected specs...\n`);
-    // TODO: Implement conflict resolution
+    console.log(`  ⚠️ Wave alignment issues detected:\n`);
+    for (const conflict of alignment.conflicts) {
+      console.log(`    - ${conflict.issue} (affects: ${conflict.affectedSpecs.join(', ')})`);
+      console.log(`      → ${conflict.suggestion}`);
+    }
+    throw new Error(`Wave 2 alignment failed with ${alignment.conflicts.length} conflict(s). Manual resolution required.`);
   }
 
   // Save all subsystem specs
@@ -176,7 +262,7 @@ Generate a high-level system architecture specification (~5 pages) that identifi
       const component = componentsList.find(c => c.component === name);
       const subsystemSpec = component ? subsystemSpecs.get(component.subsystem) || '' : '';
       const validation = await validateComponentSpec(subsystemSpec, name, spec);
-      return { name, spec, validation };
+      return { name, spec, validation, subsystem: component?.subsystem || '' };
     })
   );
 
@@ -184,15 +270,118 @@ Generate a high-level system architecture specification (~5 pages) that identifi
   const failedComponents = componentValidations.filter(v => !v.validation.pass);
   if (failedComponents.length > 0) {
     console.log(`\n  ⚠️ ${failedComponents.length} component(s) failed validation. Regenerating...\n`);
-    // TODO: Implement regeneration loop for failed components
+
+    // Regenerate failed components
+    for (const failed of failedComponents) {
+      console.log(`  Regenerating ${failed.name}...\n`);
+
+      const subsystemSpec = subsystemSpecs.get(failed.subsystem) || '';
+
+      for (let attempt = 1; attempt <= MAX_REGENERATION_ATTEMPTS; attempt++) {
+        const llm = getLLMClient();
+        const prompt = attempt === 1
+          ? `Generate a Tier 3 Component Specification.
+
+**Subsystem Context:**
+${subsystemSpec}
+
+**Your Focus:** ${failed.name}
+
+**Your Task:**
+Generate a detailed component specification (~10-12 pages) that designs:
+1. Component Overview
+2. Functions (WHAT functions exist in this component, with clear signatures)
+3. Data Structures (types, schemas, validation rules)
+4. State Management (how state is stored and managed)
+5. Error Handling (how errors are propagated)
+
+**Scope:**
+- Design FUNCTIONS with clear inputs/outputs/side effects
+- Define DATA STRUCTURES needed
+- Specify ERROR conditions and handling
+- Focus on WHAT the component does, not implementation code
+
+**Output Format:**
+# Component: ${failed.name}
+
+## Overview
+[What does this component do? How does it fit in the subsystem?]
+
+## Functions
+### Function: [name]
+**Purpose:** [What does this function do?]
+**Inputs:**
+- param1: type (description)
+- param2: type (description)
+**Outputs:**
+- return: type (description)
+**Side Effects:**
+- [Any side effects, or "None" if pure]
+**Errors:**
+- ErrorType1: condition
+- ErrorType2: condition
+
+### Function: [name]
+...
+
+## Data Structures
+### Type: [name]
+\`\`\`
+{
+  field1: type,
+  field2: type
+}
+\`\`\`
+**Purpose:** [What is this type for?]
+**Validation Rules:**
+- [Rule 1]
+- [Rule 2]
+
+## State Management
+[How does this component manage state?]
+
+## Error Handling
+[How are errors propagated?]
+
+**CRITICAL:** Define clear function signatures. Code generation depends on this.`
+          : buildRegenerationPrompt({
+              originalPrompt: subsystemSpec,
+              previousAttempt: failed.spec,
+              validatorFeedback: failed.validation.feedbackForNextAttempt,
+              issues: failed.validation.issues,
+              attemptNumber: attempt + 1,
+            });
+
+        const response = await llm.prompt(prompt);
+        const newSpec = response.content;
+
+        // Re-validate
+        const validation = await validateComponentSpec(subsystemSpec, failed.name, newSpec);
+
+        if (validation.pass) {
+          // Update componentSpecs map
+          componentSpecs.set(failed.name, newSpec);
+          console.log(`    ✓ ${failed.name} passed after ${attempt + 1} attempt(s)\n`);
+          break;
+        }
+
+        if (attempt === MAX_REGENERATION_ATTEMPTS) {
+          throw new Error(`${failed.name} validation failed after ${MAX_REGENERATION_ATTEMPTS} attempts`);
+        }
+      }
+    }
   }
 
   // Wave alignment check
   console.log('\n  Checking wave alignment...\n');
   const componentAlignment = await alignComponentWave(subsystemSpecs, componentSpecs);
   if (!componentAlignment.aligned) {
-    console.log(`  ⚠️ Wave alignment issues detected. Would regenerate affected specs...\n`);
-    // TODO: Implement conflict resolution
+    console.log(`  ⚠️ Wave alignment issues detected:\n`);
+    for (const conflict of componentAlignment.conflicts) {
+      console.log(`    - ${conflict.issue} (affects: ${conflict.affectedSpecs.join(', ')})`);
+      console.log(`      → ${conflict.suggestion}`);
+    }
+    throw new Error(`Wave 3 alignment failed with ${componentAlignment.conflicts.length} conflict(s). Manual resolution required.`);
   }
 
   // Save all component specs
@@ -205,15 +394,100 @@ Generate a high-level system architecture specification (~5 pages) that identifi
   // ━━━ WAVE 4: Integration Spec ━━━
   console.log('\n━━━ WAVE 4: Integration Specification ━━━\n');
 
-  console.log('📝 Generating Tier 4: Integration Specification...');
-  const integrationSpec = await generateIntegrationSpec();
-  await saveAndLock('integration.md', integrationSpec);
+  let integrationSpec = '';
+  let integrationSpecValidated = false;
 
-  // Validate integration spec
-  const integrationValidation = await validateIntegrationSpec(componentSpecs, integrationSpec);
-  if (!integrationValidation.pass) {
-    console.log('  ⚠️ Integration spec validation failed. Would regenerate...\n');
-    // TODO: Implement regeneration loop
+  for (let attempt = 1; attempt <= MAX_REGENERATION_ATTEMPTS; attempt++) {
+    console.log(`📝 Generating Tier 4: Integration Specification (attempt ${attempt}/${MAX_REGENERATION_ATTEMPTS})...`);
+
+    if (attempt === 1) {
+      integrationSpec = await generateIntegrationSpec();
+    } else {
+      // Regenerate with feedback
+      const llm = getLLMClient();
+      const componentsList = Array.from(componentSpecs.entries())
+        .map(([name, spec]) => `### ${name}\n${spec}`)
+        .join('\n\n---\n\n');
+
+      const prompt = buildRegenerationPrompt({
+        originalPrompt: `Generate a Tier 4 Integration Specification.
+
+**All Component Specs:**
+${componentsList}
+
+**Your Task:**
+Generate an integration specification (~15 pages) that defines:
+1. Cross-Component Contracts (how components interact)
+2. Data Flow (how data moves through the system)
+3. Shared Types (common interfaces used across components)
+4. Integration Points (all component boundaries)
+
+**Scope:**
+- Define ALL interactions between components
+- Specify shared types/interfaces
+- Document data flow end-to-end
+- Identify integration test scenarios
+
+**Output Format:**
+# Integration Specification
+
+## Cross-Component Contracts
+### Contract: [ComponentA] → [ComponentB]
+**Purpose:** [What is this interaction for?]
+**Interface:**
+\`\`\`
+function_name(params) -> return_type
+\`\`\`
+**Data Flow:**
+[How data flows in this interaction]
+
+## Shared Types
+### Type: [name]
+\`\`\`
+{
+  field1: type,
+  field2: type
+}
+\`\`\`
+**Used By:** [List of components]
+
+## Data Flow Diagrams
+[High-level data flow through the system]
+
+## Integration Test Scenarios
+- [Test scenario 1]
+- [Test scenario 2]
+
+**CRITICAL:** All component interactions must be defined.`,
+        previousAttempt: integrationSpec,
+        validatorFeedback: 'Integration spec validation failed',
+        attemptNumber: attempt + 1,
+      });
+
+      const response = await llm.prompt(prompt);
+      integrationSpec = response.content;
+    }
+
+    await saveAndLock('integration.md', integrationSpec);
+
+    // Validate integration spec
+    const integrationValidation = await validateIntegrationSpec(componentSpecs, integrationSpec);
+
+    if (integrationValidation.pass) {
+      integrationSpecValidated = true;
+      console.log(`✓ Integration spec validated.\n`);
+      break;
+    }
+
+    if (attempt === MAX_REGENERATION_ATTEMPTS) {
+      throw new Error(`Integration spec validation failed after ${MAX_REGENERATION_ATTEMPTS} attempts`);
+    }
+
+    console.log(`  Regenerating with validator feedback...\n`);
+  }
+
+  if (!integrationSpecValidated) {
+    throw new Error('Integration spec validation failed');
   }
 
   console.log('✓ Integration spec complete.\n');
@@ -226,9 +500,31 @@ Generate a high-level system architecture specification (~5 pages) that identifi
 
   for (const [component, spec] of componentSpecs) {
     console.log(`📦 Generating artifacts for ${component}...`);
-    await generateAndAuditArtifacts(spec, integrationSpec, component);
-    // TODO: Artifact validation
-    console.log(`✓ ${component} artifacts generated.\n`);
+
+    // Note: generateAndAuditArtifacts is not implemented yet
+    // For now, we'll skip artifact generation but keep the structure
+    try {
+      await generateAndAuditArtifacts(spec, integrationSpec, component);
+
+      // TODO: Once artifacts are actually generated, validate them
+      // const artifactValidation = await validateArtifacts(
+      //   spec,
+      //   component,
+      //   artifacts
+      // );
+      //
+      // if (!artifactValidation.pass) {
+      //   // Implement regeneration loop for failed artifacts
+      // }
+
+      console.log(`✓ ${component} artifacts generated.\n`);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Not implemented')) {
+        console.log(`  ⚠️ Artifact generation not implemented yet, skipping...\n`);
+      } else {
+        throw error;
+      }
+    }
   }
 
   // ━━━ WAVE 6: Code ━━━

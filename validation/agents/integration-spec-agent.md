@@ -10,7 +10,7 @@
 
 ## Outputs
 
-1. **Integration Specification** (`.outline/specs/integration.md`)
+1. **Integration Specification** (`.spec2/specs/integration.md`)
    - Shared types/interfaces
    - Cross-component contracts
    - Data flow between components
@@ -86,12 +86,12 @@ Integration spec is ready when:
 **Manual**:
 ```bash
 # In Claude Code session:
-"Generate integration specification from all tier3 specs in .outline/specs/"
+"Generate integration specification from all tier3 specs in .spec2/specs/"
 ```
 
 **Automated** (future):
 ```bash
-bash .outline/outline-strong/agents/integration-spec-agent.sh .outline/specs/comp-*.md output/integration.md
+bash .spec2/outline-strong/agents/integration-spec-agent.sh .spec2/specs/comp-*.md output/integration.md
 ```
 
 ---
@@ -99,7 +99,7 @@ bash .outline/outline-strong/agents/integration-spec-agent.sh .outline/specs/com
 ## Lock After Approval
 
 ```bash
-sha256sum .outline/specs/integration.md > .outline/outline-strong/locked/integration.md.lock
+sha256sum .spec2/specs/integration.md > .spec2/outline-strong/locked/integration.md.lock
 ```
 
 **CRITICAL**: This spec prevents integration bugs. Must be generated BEFORE any code.
