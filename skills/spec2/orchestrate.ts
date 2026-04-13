@@ -25,7 +25,7 @@ import { alignSubsystemWave, alignComponentWave } from './validators/wave-alignm
 import { buildRegenerationPrompt } from './utils/regenerate.js';
 import { getLLMClient } from './utils/llm.js';
 import { initializeProjectStructure, saveSpec, saveArtifacts, saveProjectSummary } from './utils/persist.js';
-import { saveCheckpoint } from './utils/checkpoint.js';
+import { saveCheckpoint, type Checkpoint } from './utils/checkpoint.js';
 
 export interface BuildResult {
   components: string[];
@@ -34,6 +34,109 @@ export interface BuildResult {
 }
 
 const MAX_REGENERATION_ATTEMPTS = 3;
+
+/**
+ * Resume orchestration from a checkpoint
+ */
+export async function orchestrateSpec2FromCheckpoint(
+  checkpoint: Checkpoint
+): Promise<BuildResult> {
+  console.log(`\n🔄 Resuming from ${checkpoint.phase}...\n`);
+
+  const { requirements, language } = checkpoint;
+
+  // Initialize project structure (idempotent)
+  const dirs = initializeProjectStructure('.spec2');
+
+  // Reconstruct Maps from checkpoint
+  const subsystemSpecs = new Map(Object.entries(checkpoint.subsystemSpecs || {}));
+  const componentSpecs = new Map(Object.entries(checkpoint.componentSpecs || {}));
+  const componentArtifacts = new Map(Object.entries(checkpoint.artifacts || {}));
+
+  // Determine where to resume based on checkpoint phase
+  switch (checkpoint.phase) {
+    case 'wave1':
+      // Resume from Wave 2 (Subsystem Specs)
+      return await resumeFromWave2(checkpoint, dirs, subsystemSpecs, componentSpecs, componentArtifacts);
+
+    case 'wave2':
+      // Resume from Wave 3 (Component Specs)
+      return await resumeFromWave3(checkpoint, dirs, subsystemSpecs, componentSpecs, componentArtifacts);
+
+    case 'wave3':
+      // Resume from Wave 4 (Integration Spec)
+      return await resumeFromWave4(checkpoint, dirs, subsystemSpecs, componentSpecs, componentArtifacts);
+
+    case 'wave4':
+      // Resume from Wave 5 (Artifacts)
+      return await resumeFromWave5(checkpoint, dirs, subsystemSpecs, componentSpecs, componentArtifacts);
+
+    case 'wave5':
+      // Resume from Wave 6 (Code Generation)
+      return await resumeFromWave6(checkpoint, dirs, componentSpecs, componentArtifacts);
+
+    case 'complete':
+      throw new Error('Build already complete, nothing to resume');
+
+    default:
+      throw new Error(`Unknown checkpoint phase: ${checkpoint.phase}`);
+  }
+}
+
+// Resume helper functions will be implemented below the main orchestrateSpec2 function
+async function resumeFromWave2(
+  checkpoint: Checkpoint,
+  dirs: any,
+  subsystemSpecs: Map<string, string>,
+  componentSpecs: Map<string, string>,
+  componentArtifacts: Map<string, any>
+): Promise<BuildResult> {
+  // TODO: Implement Wave 2 onwards
+  throw new Error('Resume from Wave 2 not yet implemented');
+}
+
+async function resumeFromWave3(
+  checkpoint: Checkpoint,
+  dirs: any,
+  subsystemSpecs: Map<string, string>,
+  componentSpecs: Map<string, string>,
+  componentArtifacts: Map<string, any>
+): Promise<BuildResult> {
+  // TODO: Implement Wave 3 onwards
+  throw new Error('Resume from Wave 3 not yet implemented');
+}
+
+async function resumeFromWave4(
+  checkpoint: Checkpoint,
+  dirs: any,
+  subsystemSpecs: Map<string, string>,
+  componentSpecs: Map<string, string>,
+  componentArtifacts: Map<string, any>
+): Promise<BuildResult> {
+  // TODO: Implement Wave 4 onwards
+  throw new Error('Resume from Wave 4 not yet implemented');
+}
+
+async function resumeFromWave5(
+  checkpoint: Checkpoint,
+  dirs: any,
+  subsystemSpecs: Map<string, string>,
+  componentSpecs: Map<string, string>,
+  componentArtifacts: Map<string, any>
+): Promise<BuildResult> {
+  // TODO: Implement Wave 5 onwards
+  throw new Error('Resume from Wave 5 not yet implemented');
+}
+
+async function resumeFromWave6(
+  checkpoint: Checkpoint,
+  dirs: any,
+  componentSpecs: Map<string, string>,
+  componentArtifacts: Map<string, any>
+): Promise<BuildResult> {
+  // TODO: Implement Wave 6 onwards
+  throw new Error('Resume from Wave 6 not yet implemented');
+}
 
 export async function orchestrateSpec2(
   requirements: string,
