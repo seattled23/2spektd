@@ -1,0 +1,27 @@
+{
+  "name": "spec2",
+  "version": "1.0.0",
+  "description": "Spec2: Requirements-to-code generation with comprehensive validation",
+  "type": "module",
+  "main": "dist/skill.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "test": "node --test dist/**/*.test.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.27.0",
+    "@babel/parser": "^7.24.0",
+    "@babel/traverse": "^7.24.0",
+    "@babel/types": "^7.24.0",
+    "better-sqlite3": "^11.0.0",
+    "groq-sdk": "^1.1.2",
+    "openai": "^6.34.0"
+  },
+  "devDependencies": {
+    "@types/babel__traverse": "^7.28.0",
+    "@types/better-sqlite3": "^7.6.9",
+    "@types/node": "^20.12.0",
+    "typescript": "^5.4.0"
+  }
+}
