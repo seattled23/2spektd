@@ -94,7 +94,7 @@
 
 ---
 
-## 🎯 Production Ready - Version 1.0.0
+## 🎯 Production Ready - Version 1.0.3
 
 **What's included in production release:**
 - ✅ Full spec generation pipeline (Tier 1-4)
@@ -106,10 +106,13 @@
 - ✅ Fresh agent isolation (prevents context pollution)
 - ✅ Feedback loops (validators provide actionable suggestions)
 - ✅ Max retry limits (3 attempts per spec/component)
+- ✅ **Artifact generation (Wave 5)** - 4 artifacts per component
+- ✅ **File persistence system** - Structured output directories
+- ✅ **Checkpoint system** - Progress tracking after each wave
+- ✅ **/spec2-status command** - View current build progress
 
 **What happens on validation failure:**
-- **All Waves 1-4:** Regenerates automatically with validator feedback (max 3 attempts)
-- **Wave 5:** Error handling in place (ready for artifact regeneration)
+- **All Waves 1-5:** Regenerates automatically with validator feedback (max 3 attempts)
 - **Wave 6:** Fix loop for code (anti-hallucination)
 - **Wave Alignment Conflicts:** Throws error with conflict details (manual resolution)
 
@@ -219,11 +222,15 @@ utils/
   ├── llm-config.ts            ✅ 95 lines (config + testing mode)
   ├── regenerate.ts            ✅ 42 lines (feedback loops)
   ├── wave-regeneration.ts     ✅ 66 lines (generic helpers)
-  └── persist.ts               ✅ 136 lines (file persistence + project structure)
+  ├── persist.ts               ✅ 136 lines (file persistence + project structure)
+  └── checkpoint.ts            ✅ 101 lines (progress checkpointing)
 
-orchestrate.ts                 ✅ 552 lines (full pipeline with regeneration)
+orchestrate.ts                 ✅ 623 lines (full pipeline with checkpoints)
 
-Total: ~1,861 lines of production code
+skills/spec2-status/
+  └── status.ts                ✅ 72 lines (/spec2-status command)
+
+Total: ~2,034 lines of production code
 ```
 
 ### TypeScript Compilation
@@ -315,11 +322,13 @@ All 6 waves have:
 4. Wave alignment checks (Waves 2-3)
 5. Production + testing modes
 6. SHA256 spec locking
-7. Full orchestration pipeline (559 lines)
+7. Full orchestration pipeline (623 lines, includes checkpoints)
 8. **Artifact generation system (Wave 5)** - 4 artifacts per component
 9. **File persistence system** - Structured output with project summary
+10. **Checkpoint system** - Progress saved after each wave
+11. **/spec2-status command** - View current build progress
 
-**Total implementation: ~1,861 lines of production TypeScript**
+**Total implementation: ~2,034 lines of production TypeScript**
 
 **Next steps:**
 1. Test end-to-end with real requirements
