@@ -24,6 +24,7 @@ import { validateArtifacts } from './validators/artifact-validator.js';
 import { alignSubsystemWave, alignComponentWave } from './validators/wave-alignment.js';
 import { buildRegenerationPrompt } from './utils/regenerate.js';
 import { getLLMClient } from './utils/llm.js';
+import { initializeProjectStructure, saveSpec, saveArtifacts, saveProjectSummary } from './utils/persist.js';
 
 export interface BuildResult {
   components: string[];
@@ -38,6 +39,10 @@ export async function orchestrateSpec2(
   language: string
 ): Promise<BuildResult> {
   console.log('\n🔷 PHASE 1: Specification Generation\n');
+
+  // Initialize project structure
+  const dirs = initializeProjectStructure('.spec2');
+  console.log('📁 Initialized project structure at .spec2/\n');
 
   // ━━━ WAVE 1: System Spec ━━━
   console.log('━━━ WAVE 1: System Specification ━━━\n');
@@ -507,6 +512,9 @@ function_name(params) -> return_type
     const artifacts = await generateAndAuditArtifacts(spec, integrationSpec, component);
     componentArtifacts.set(component, artifacts);
 
+    // Save artifacts to disk
+    saveArtifacts(dirs, component, artifacts);
+
     console.log(`✓ ${component} artifacts generated and validated.\n`);
   }
 
@@ -537,10 +545,18 @@ function_name(params) -> return_type
   // TODO: Implement integration test runner
   console.log('✓ Integration tests passed.\n');
 
+  // Generate project summary
+  saveProjectSummary(dirs, {
+    requirements,
+    language,
+    components: generatedComponents,
+    generatedAt: new Date().toISOString(),
+  });
+
   return {
     components: generatedComponents,
     validationStatus: 'PASSED',
-    outputPath: '.spec2/specs'
+    outputPath: dirs.outputDir
   };
 }
 

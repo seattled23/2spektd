@@ -218,11 +218,12 @@ utils/
   ├── llm.ts                   ✅ 232 lines (multi-provider)
   ├── llm-config.ts            ✅ 95 lines (config + testing mode)
   ├── regenerate.ts            ✅ 42 lines (feedback loops)
-  └── wave-regeneration.ts     ✅ 66 lines (generic helpers)
+  ├── wave-regeneration.ts     ✅ 66 lines (generic helpers)
+  └── persist.ts               ✅ 136 lines (file persistence + project structure)
 
 orchestrate.ts                 ✅ 552 lines (full pipeline with regeneration)
 
-Total: ~1,725 lines of production code
+Total: ~1,861 lines of production code
 ```
 
 ### TypeScript Compilation
@@ -314,10 +315,11 @@ All 6 waves have:
 4. Wave alignment checks (Waves 2-3)
 5. Production + testing modes
 6. SHA256 spec locking
-7. Full orchestration pipeline (552 lines)
+7. Full orchestration pipeline (559 lines)
 8. **Artifact generation system (Wave 5)** - 4 artifacts per component
+9. **File persistence system** - Structured output with project summary
 
-**Total implementation: ~1,725 lines of production TypeScript**
+**Total implementation: ~1,861 lines of production TypeScript**
 
 **Next steps:**
 1. Test end-to-end with real requirements
