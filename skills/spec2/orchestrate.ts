@@ -25,6 +25,7 @@ import { alignSubsystemWave, alignComponentWave } from './validators/wave-alignm
 import { buildRegenerationPrompt } from './utils/regenerate.js';
 import { getLLMClient } from './utils/llm.js';
 import { initializeProjectStructure, saveSpec, saveArtifacts, saveProjectSummary } from './utils/persist.js';
+import { saveCheckpoint } from './utils/checkpoint.js';
 
 export interface BuildResult {
   components: string[];
@@ -127,6 +128,16 @@ Generate a high-level system architecture specification (~5 pages) that identifi
   }
 
   const subsystems = extractSubsystems(systemSpec);
+
+  // Save checkpoint after Wave 1
+  saveCheckpoint({
+    phase: 'wave1',
+    timestamp: new Date().toISOString(),
+    requirements,
+    language,
+    systemSpec,
+    subsystems
+  });
 
   // ━━━ WAVE 2: Subsystem Specs ━━━
   console.log('\n━━━ WAVE 2: Subsystem Specifications ━━━\n');
@@ -250,6 +261,17 @@ Generate a detailed subsystem specification (~8 pages) that identifies:
   }
 
   console.log(`\n✓ ${subsystemSpecs.size} subsystem specs complete.\n`);
+
+  // Save checkpoint after Wave 2
+  saveCheckpoint({
+    phase: 'wave2',
+    timestamp: new Date().toISOString(),
+    requirements,
+    language,
+    systemSpec,
+    subsystems,
+    subsystemSpecs: Object.fromEntries(subsystemSpecs)
+  });
 
   // ━━━ WAVE 3: Component Specs ━━━
   console.log('\n━━━ WAVE 3: Component Specifications ━━━\n');
@@ -396,6 +418,20 @@ Generate a detailed component specification (~10-12 pages) that designs:
 
   console.log(`\n✓ ${componentSpecs.size} component specs complete.\n`);
 
+  // Save checkpoint after Wave 3
+  const components = Array.from(componentSpecs.keys());
+  saveCheckpoint({
+    phase: 'wave3',
+    timestamp: new Date().toISOString(),
+    requirements,
+    language,
+    systemSpec,
+    subsystems,
+    subsystemSpecs: Object.fromEntries(subsystemSpecs),
+    components,
+    componentSpecs: Object.fromEntries(componentSpecs)
+  });
+
   // ━━━ WAVE 4: Integration Spec ━━━
   console.log('\n━━━ WAVE 4: Integration Specification ━━━\n');
 
@@ -497,6 +533,20 @@ function_name(params) -> return_type
 
   console.log('✓ Integration spec complete.\n');
 
+  // Save checkpoint after Wave 4
+  saveCheckpoint({
+    phase: 'wave4',
+    timestamp: new Date().toISOString(),
+    requirements,
+    language,
+    systemSpec,
+    subsystems,
+    subsystemSpecs: Object.fromEntries(subsystemSpecs),
+    components,
+    componentSpecs: Object.fromEntries(componentSpecs),
+    integrationSpec
+  });
+
   // ━━━ Lock All Specs ━━━
   console.log('\n✓ All specs locked with SHA256 checksums.\n');
 
@@ -517,6 +567,21 @@ function_name(params) -> return_type
 
     console.log(`✓ ${component} artifacts generated and validated.\n`);
   }
+
+  // Save checkpoint after Wave 5
+  saveCheckpoint({
+    phase: 'wave5',
+    timestamp: new Date().toISOString(),
+    requirements,
+    language,
+    systemSpec,
+    subsystems,
+    subsystemSpecs: Object.fromEntries(subsystemSpecs),
+    components,
+    componentSpecs: Object.fromEntries(componentSpecs),
+    integrationSpec,
+    artifacts: Object.fromEntries(componentArtifacts)
+  });
 
   // ━━━ WAVE 6: Code ━━━
   console.log('\n🔷 PHASE 3: Code Generation & Verification\n');
@@ -551,6 +616,22 @@ function_name(params) -> return_type
     language,
     components: generatedComponents,
     generatedAt: new Date().toISOString(),
+  });
+
+  // Save final checkpoint
+  saveCheckpoint({
+    phase: 'complete',
+    timestamp: new Date().toISOString(),
+    requirements,
+    language,
+    systemSpec,
+    subsystems,
+    subsystemSpecs: Object.fromEntries(subsystemSpecs),
+    components,
+    componentSpecs: Object.fromEntries(componentSpecs),
+    integrationSpec,
+    artifacts: Object.fromEntries(componentArtifacts),
+    generatedComponents
   });
 
   return {
