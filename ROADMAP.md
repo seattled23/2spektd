@@ -1,6 +1,6 @@
 # Spec2 Roadmap
 
-**Last updated:** 2026-04-14 (v1.3.0-dev — §8 Pack #1 Go shipped: LanguagePack registry + 4 Go quality adapters + AST detectors)
+**Last updated:** 2026-04-14 (v1.3.0-dev — §8 Pack #1 Go shipped + §11 Production-Grade Quality Pipeline architecture captured)
 **Owner:** single source of truth for what's shipped, what's next, what's deferred, and why.
 
 Supersedes scope discussion in: `IMPLEMENTATION_STATUS.md` (status only), `MVP_*` docs (stale),
@@ -273,21 +273,35 @@ Ships Tier 1 (MCP + anti-hollow + registry + docs). After this, spec2 is usable
 from Claude Code and Gemini CLI natively, and the "anti-hollow testing" claim in
 the README is actually backed by code.
 
-### v1.3.0 target (updated 2026-04-13 — supersedes prior v1.3.0 scope)
-Ships §8 Pack #1 (Go) + §9.5-P1/P2 (Go pack adapters + semgrep + trivy multi-lang).
-Spec2 goes from "claims 4-language support with 3 stubs" to "Go is a real
-supported pack with full validation parity." Completion test: the `§8.0 current gap`
-table has all four columns filled in for Go.
+### v1.3.0 target (updated 2026-04-14 — adds §11 quality-pipeline foundation)
+Ships:
+- §8 Pack #1 (Go) ✅ — landed 2026-04-14, commit 6b0ddf6.
+- §9.5-P1 ✅ — landed with Pack #1.
+- §9.5-P2 (semgrep + trivy multi-lang adapters).
+- §11 quality-pipeline foundation: §11.5-P1 (correctness gate makes
+  ERROR-severity findings fatal in Wave 6.1), §11.5-P2 (test gen/run +
+  itemized failures + anti-hollow gate as Wave 6.2), §11.5-P7 (itemized
+  regen prompt shape across all sub-waves), §11.5-P8 (severity routing
+  dispatcher).
+
+Spec2 goes from "single-pass with non-fatal warnings" → "ERROR-severity
+findings block; warnings route to owning sub-wave" — the structural
+correction to the "good enough" enforcement bias identified 2026-04-14.
 
 **Deferred from original v1.3.0 scope**: Visual Review Packages already shipped in
 v1.2.0-dev; confidence scoring (Tier 2 F) moves to v1.4.0.
 
-### v1.3.1 / v1.3.2 / v1.4.0 (sketched)
-- **v1.3.1**: Astro + Python packs (§9.5-P3 + P4), TS/JS adapter upgrade (P5),
-  §10 ReviewAgent foundation (P1) + highest-value agents (P2).
-- **v1.3.2**: Rust pack (§9.5-P6), remaining review agents (§10.7-P3/P4/P5).
-- **v1.4.0**: C/C++/Java/Shell/Dockerfile (P7), shared-package extraction (P8),
-  confidence scoring (Tier 2 F), optional multi-tier LLM orchestration.
+### v1.3.1 / v1.3.2 / v1.4.0 (sketched, updated 2026-04-14)
+- **v1.3.1**: §11.5-P3 (structural sub-wave 6.3), §11.5-P4 (security 6.4),
+  §11.5-P9 (planning MCP integration). Astro pack (§9.5-P3), Python pack
+  upgrade (§9.5-P4), TS/JS pack (§9.5-P5). §10 ReviewAgent foundation (P1)
+  + highest-value agents (P2).
+- **v1.3.2**: §11.5-P5 (performance 6.5), §11.5-P6 (polish 6.6). Rust pack
+  (§9.5-P6). Remaining review agents (§10.7-P3/P4/P5).
+- **v1.4.0**: §11.5-P10 (RNOP MCP integration — blocks on RNOP MCP server
+  existing). C/C++/Java/Shell/Dockerfile packs (§9.5-P7), shared-package
+  extraction (P8), confidence scoring (Tier 2 F), optional multi-tier LLM
+  orchestration.
 
 ### v2.0.0 target
 Blocked on E2E validation proving the pipeline produces production-quality code
@@ -706,4 +720,191 @@ generated code). Recommended sequencing:
   the final report.
 - Smoke test: run all 6 agents against a known-good v1.1.0+ build output
   (integration test artifact) and assert all pass.
+
+---
+
+## 11. Production-Grade Quality Pipeline (v1.3.x target)
+
+### 11.0 Why this exists
+
+Spec2's job is "requirements → production-quality code." §8/§9/§10 raise
+the floor of per-language validation, but a single-pass codegen with
+non-fatal quality checks is not production-grade — that's "good enough."
+This section defines the multi-pass quality pipeline that sits inside Wave 6,
+plus its integration with two sister tools in the CompanyOS ecosystem.
+
+**The three-tool pipeline** (each tool owns a distinct phase):
+
+1. **CompanyOS planning module** — `/home/swarm/CompanyOS2/companyos/companyos/planning/`.
+   Exposes 34 MCP tools via `scripts/mcp-server-lite.py` (`plan_create`,
+   `plan_set_focus`, `plan_checkpoint`, `plan_add_decision`,
+   `plan_add_constraint`, `plan_add_contract`, …). Plans persist as JSON in
+   `~/.local/share/companyos/plans/` — survives context compression. Documented
+   in CompanyOS2 CLAUDE.md §18. Produces a coherent, context-resilient project
+   plan that survives compression.
+2. **spec2** — materialises the plan into code via Waves 1-6 + the §11
+   quality sub-waves below to drive code from "compiles" → "production-grade."
+3. **RNOP MCP tool** (Recursive N-Order Optimization Protocol — **planned**;
+   methodology at `CompanyOS2/docs/automation/RECURSIVE_N_ORDER_OPTIMIZATION.md`,
+   partial code implementation may exist but **location is unverified as of
+   2026-04-14** — must be located/built before §11.5-P10). Wraps regen loops
+   with structural reasoning: when a wave fails, RNOP reasons about *why*
+   (root cause / N-order failure cascades) and what patch *philosophy*
+   applies — not mechanical "fix the errors." Eliminates symptom-patching.
+
+The combination is what makes the pipeline production-grade. Each tool alone
+covers part of the surface; together they cover the path from intent →
+verified code without single-pass perfection assumptions.
+
+### 11.1 Wave 6 sub-waves (post-codegen quality pipeline)
+
+After Wave 6.0 (initial codegen — existing), every component runs through
+six issue-gated sub-waves. Each sub-wave is **skipped if the prior pass +
+deterministic tools left zero findings in its category** — keeps token cost
+bounded.
+
+| Sub-wave | Category | Inputs to LLM (on regen) | Tooling | Wave gate (must pass to advance) |
+|----------|----------|---------------------------|---------|-----------------------------------|
+| 6.0 | Initial codegen | spec + pack prompt | (none) | Always runs |
+| 6.1 | **Correctness** — compile, static, type-check | code + ERROR-severity findings (itemized) | go vet / tsc / pyright / clippy / cargo check | Zero ERROR-severity findings |
+| 6.2 | **Test correctness** — generate tests, run, itemize failures | code + test output + structured failure table + spec | `go test -json` / `vitest --reporter=json` / `pytest --json-report` + anti-hollow scan | All tests green AND anti-hollow clean |
+| 6.3 | **Structural** — modularity, cohesion, circular deps, import order, idempotency, API surface | code + structural findings | go-imports / madge / import-linter / per-pack structural rules | No structural ERROR findings |
+| 6.4 | **Security** — SAST, secrets, injection, crypto misuse | code + SAST findings | gosec / semgrep / trivy / bandit | No HIGH-severity findings |
+| 6.5 | **Performance** — complexity, allocation hot paths, N+1, concurrency hazards | code + complexity report | gocyclo / radon / custom heuristics | Complexity below per-pack threshold |
+| 6.6 | **Polish** — doc comments, error messages, observability, dependency hygiene | code + style findings | revive / pydocstyle / per-pack rules | No critical polish gaps |
+
+**Severity routing rule (locked):**
+- `ERROR` → **blocks** the sub-wave that owns its category, triggers regen
+  with itemized findings.
+- `WARNING` → does NOT block. **Routed by category to the sub-wave it
+  belongs in** (security warning lands in 6.4's regen input, perf warning
+  in 6.5, etc.). If the owning sub-wave already passed without errors, the
+  warnings surface in the visual review package without forcing regen.
+- `INFO` → logged, surfaced in review, never gates anything.
+
+No catch-all "warnings pass." Each warning is owned by exactly one sub-wave
+based on its category.
+
+### 11.2 Itemized-failure regen prompt shape
+
+When a sub-wave fails, the regen prompt is **structured** (not "fix stuff"):
+
+```
+You implemented <component>. The previous attempt had <N> findings in
+sub-wave <X> (<category>):
+
+  1. [<file>:<line>] <tool>:<rule_id> — <message>
+     Remediation hint: <hint>
+  2. [<file>:<line>] ...
+
+Regenerate the file. Preserve all behavior NOT mentioned above. Do not
+introduce new dependencies. Do not change exported function signatures.
+```
+
+This works because the LLM sees exact locations + rule IDs + remediation
+guidance, which makes targeted patches possible without losing the rest of
+the implementation.
+
+**For test failures (Wave 6.2):**
+
+```
+Test results: <P> passed, <F> failed, <S> skipped.
+
+Failures:
+  1. TestFooBar (file_test.go:42)
+     Expected: <expected_value>
+     Actual:   <actual_value>
+     Diff:     <unified diff if printable>
+  2. ...
+
+Anti-hollow findings: <H>
+  - TestBaz (file_test.go:88) — zero_assertions: ...
+
+Regenerate ONLY the failing parts of the implementation OR test code as
+appropriate. Preserve passing tests verbatim.
+```
+
+The structured failure table comes from `go test -json` /
+`vitest --reporter=json` / `pytest --json-report` — each pack's adapter
+parses the relevant format into a normalized `TestFailure` shape (sibling
+to `QualityIssue`).
+
+### 11.3 Token strategy
+
+Naive N-waves-per-file is token-prohibitive. The pipeline reduces cost via:
+
+| Strategy | Cost effect | Where applied |
+|----------|-------------|----------------|
+| **Issue-gated** | Skips sub-waves with zero findings → most files only pay for 6.0 + maybe one regen | All sub-waves |
+| **Tool-first, LLM-second** | Tools find issues deterministically (free); LLM only sees the issue list and produces a targeted patch | 6.1, 6.3, 6.4, 6.5, 6.6 |
+| **Itemized regen** | LLM doesn't reread the whole spec — only the deltas | All regen calls |
+| **Self-consistency (reserved)** | N candidates, pick lowest-issue. N× cost. | Only for 6.0 if codegen quality is empirically poor on a given pack |
+| **Single bulked prompt** (REJECTED) | One prompt with all rules upfront. LLM skips rules under load — quality ceiling too low | — |
+
+Expected steady-state cost vs. baseline v1.2.0: **~1.3-1.8× tokens** per
+component when generation is good, up to **4-5×** when many regens are
+needed. Acceptable because the alternative is hand-fixing.
+
+### 11.4 Three-tool integration contracts
+
+| Pair | Direction | Contract |
+|------|-----------|----------|
+| Planning → spec2 | Plan provides spec2 with system/subsystem/component decomposition + cross-cutting decisions/constraints/contracts. Spec2 reads via MCP `plan_get_section` / `plan_get_focus`. | Plan must use sections matching spec2's wave shape. Decisions/constraints flagged `affects: codegen` flow into Wave 6 prompts. |
+| spec2 → planning | After Wave 6.0, spec2 calls `plan_update_status(section, completed)`. After Wave 6.1-6.6, spec2 calls `plan_add_decision` for any architectural choice forced by tool findings. | Spec2 never edits sections it didn't author. Plan-supplied decisions are immutable from spec2's side. |
+| spec2 → RNOP | When a sub-wave's max-regen-attempts exhausts, spec2 hands the failure history (initial code, each regen attempt, each finding set) to RNOP, which produces a structural-mitigation patch philosophy (not the patch itself). | RNOP returns reasoning, not code. Spec2 then runs one final regen with the RNOP philosophy in the prompt. |
+| RNOP → planning | If RNOP determines the failure is structural (spec is wrong, not code), it calls `plan_add_decision` flagging the spec section needing revision. | Spec2 halts the wave and surfaces to user; humans/planning loop revise the spec. |
+
+**No tool runs in isolation.** Spec2 without planning still runs (degraded —
+missing cross-section decisions). Planning without spec2 still produces
+plans (degraded — no codegen feedback). RNOP without spec2 still produces
+reasoning (degraded — no concrete failure data). Each is independently
+useful but the combination is what makes the "production-grade autonomous
+code gen" claim defensible.
+
+### 11.5 Delivery phasing
+
+| Phase | Scope | Effort | Target |
+|-------|-------|--------|--------|
+| 11.5-P1 | Sub-wave 6.1 — correctness gate; ERROR-severity findings fail Wave 6 | 2-3h | v1.3.0-dev |
+| 11.5-P2 | Sub-wave 6.2 — test gen + run + itemized failures + anti-hollow gate | 4-6h | v1.3.0-dev |
+| 11.5-P3 | Sub-wave 6.3 — structural (modularity, circular deps, import order) | 4-5h | v1.3.1 |
+| 11.5-P4 | Sub-wave 6.4 — security (HIGH-severity gosec/semgrep/trivy fatal) | 2-3h | v1.3.1 |
+| 11.5-P5 | Sub-wave 6.5 — performance (complexity gate) | 3-4h | v1.3.2 |
+| 11.5-P6 | Sub-wave 6.6 — polish (docs, dep hygiene, observability) | 3-4h | v1.3.2 |
+| 11.5-P7 | Itemized-failure regen prompt shape across all sub-waves | 3-4h | v1.3.0-dev (foundational — blocks P1+) |
+| 11.5-P8 | Severity-routing dispatcher (warnings → owning sub-wave) | 2-3h | v1.3.0-dev |
+| 11.5-P9 | Planning MCP integration (`plan_get` / `plan_update_status` / `plan_add_decision` in orchestrate.ts) | 4-6h | v1.3.1 |
+| 11.5-P10 | RNOP MCP integration (handoff on max-attempts exhaustion) | 4-6h | v1.4.0 — **blocks on RNOP MCP existing** |
+
+**Estimated total:** 30-44h across 4-6 focused days, spread v1.3.0-dev → v1.4.0.
+
+### 11.6 Locked constraints (apply across all sub-waves)
+
+- **Each sub-wave preserves §1.1 isolation contract.** Generator agent for a
+  sub-wave receives only its category's findings + the file under test +
+  the spec section. No sibling specs. No cross-wave findings bleed.
+- **No sub-wave silently passes.** Missing tools → flagged in report. Tool
+  errors → flagged. Empty issue list with healthy tool output → genuinely passed.
+- **Determinism over speed.** Same input + same tool versions → same findings
+  list. Floats / random data forbidden in tool output parsing.
+- **Max-regen-attempts per sub-wave: 3** (matches existing Wave 6 hallucination
+  loop). After 3, hand to RNOP if available, else surface to user with the
+  full failure history.
+- **Patch-only regen.** Regen prompts say "regenerate ONLY <X>, preserve
+  everything else." LLM-induced collateral changes are themselves a
+  re-trigger of upstream sub-waves.
+
+### 11.7 Open questions
+
+1. **Test-generation scope** — does spec2 currently generate tests, or only
+   implementation? §11.5-P2 needs an explicit test-generation step if not.
+   *Status:* investigation needed before P2 starts.
+2. **RNOP MCP server** — partial implementation may exist (user reports
+   2026-04-14, location unknown). Verify before P10. If absent, RNOP MCP
+   is a separate workstream and 11.5-P10 blocks on it.
+3. **Self-consistency triggering** — at what failure rate does it become
+   cheaper than further regens? Empirical question; defer until 6.0 has
+   measurable failure rates per pack.
+4. **Per-pack threshold tuning** — complexity gate for 6.5, structural rules
+   for 6.3 — initial values are guesses; tighten with usage data.
 

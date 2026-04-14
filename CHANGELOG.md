@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Direction shift — Production-Grade Quality Pipeline (ROADMAP §11)
+
+Roadmap evolution: spec2's quality enforcement moves from "single-pass +
+non-fatal tool warnings" to a **multi-sub-wave issue-gated pipeline**
+that treats ERROR-severity findings as wave gates and routes warnings to
+their owning category sub-wave. See ROADMAP §11 for the architecture,
+severity routing, itemized-failure regen contract, and integration points
+with CompanyOS planning + planned RNOP MCP tools.
+
+Triggered by 2026-04-14 self-audit: §8 Pack #1 (Go) shipped with
+quality-tool findings logged but non-fatal — even at ERROR / HIGH severity.
+That's "good enough," not production-grade enforcement. §11 corrects this
+structurally rather than by ad-hoc tightening.
+
+The §8 Pack #1 (Go) shipment lands the per-language validation layer this
+pipeline operates over. §11 layers the cross-wave enforcement on top.
+
+**Three-tool integration vision** (see ROADMAP §11.0 + §11.4):
+1. CompanyOS planning module (34 MCP tools, externalized JSON plan store)
+   — produces context-resilient project plans
+2. spec2 — materializes plan into code via Waves 1-6 + §11 quality sub-waves
+3. RNOP MCP tool (planned; methodology exists in CompanyOS docs, code may
+   exist but location unverified) — wraps regen with structural reasoning
+
 ### Added — Go Language Pack (§8 Pack #1, §9.5-P1)
 - **`skills/spec2/packs/`** — LanguagePack registry (§8.1). Pluggable
   per-language contract: codegen prompt template, hallucination detector,
