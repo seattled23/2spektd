@@ -157,7 +157,6 @@ function getExtension(language: string): string {
     javascript: 'js',
     go: 'go',
     java: 'java',
-    rust: 'rs',
   };
   return extensions[language] || 'txt';
 }

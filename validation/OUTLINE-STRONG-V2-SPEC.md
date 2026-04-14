@@ -1,5 +1,13 @@
 # Outline-Strong v2.0 — Multi-Language, Isolation-Based Validation System
 
+> **⚠️ LEGACY DOCUMENT (v1.0 path).** This describes the **12-layer validation
+> framework** that shipped in spec2 v1.0 and still lives under `validation/`.
+> It is **not** the v1.2 wave-based pipeline that drives `/spec2-new`.
+>
+> For the current architecture, see [`ROADMAP.md`](../ROADMAP.md) in the repo
+> root and `skills/spec2/orchestrate.ts`. The v1.0 12-layer path may be
+> deprecated in a future release — tracked in ROADMAP §4.
+
 **Version**: 2.0.0
 **Date**: 2026-04-05
 **Status**: Design Specification

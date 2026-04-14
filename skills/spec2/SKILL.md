@@ -9,7 +9,7 @@ arguments:
     description: "Requirements description or path to requirements.md file"
   - name: language
     type: string
-    description: "Target language (python, typescript, go, java, rust)"
+    description: "Target language (python, typescript, go, java)"
     optional: true
 ---
 
@@ -17,15 +17,14 @@ arguments:
 
 Generates production-ready code from requirements using a 4-tier progressive narrowing approach with wave-based validation.
 
-## Features
+## Features (v1.2.0)
 
-- **4-Tier Spec Generation**: System → Subsystem → Component → Integration
-- **Integration Registry**: SQLite-based metadata tracking (12x context reduction for Tier 4)
-- **Visual Review Packages**: 1-page summaries + Mermaid diagrams (5-10x faster review)
-- **Anti-Hallucination**: AST-based detection (100% precision, 96% reduction)
-- **Anti-Hollow Tests**: Assertion density + mutation testing (>80% mutation scores)
-- **Confidence Scoring**: Deterministic 0-100 scores, smart routing
-- **12-Layer Validation**: Full Outline-Strong validation stack
+- **6-wave pipeline** — System → Subsystem → Component → Integration → Artifacts → Code
+- **Agent isolation** — every LLM call receives only its scoped slice; no agent sees sibling specs
+- **Integration Registry** — SQLite-backed component metadata (~10x Tier 4 context reduction)
+- **Anti-hallucination** — AST-based detection for generated code
+- **Anti-hollow tests** — AST-based detection of zero/tautological assertions (TS/JS); regex heuristics for Python
+- **Resume** — `/spec2-resume` picks up from the last checkpoint after an interruption
 
 ## Usage
 
@@ -33,6 +32,4 @@ Generates production-ready code from requirements using a 4-tier progressive nar
 /spec2-new "Build user authentication service with JWT tokens, session management, and password reset"
 ```
 
-## See Also
-
-- Design docs in ~/spec2/
+See `ROADMAP.md` in the repo root for shipped features, deferred work, and known issues.

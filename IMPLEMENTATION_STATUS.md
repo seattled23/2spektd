@@ -1,7 +1,7 @@
 # Spec2 Implementation Status
 
 **Last updated:** 2026-04-13
-**Version:** 1.0.0 (Production Release)
+**Version:** 1.2.0-dev (MCP + HTTP transports)
 
 ---
 
@@ -94,7 +94,7 @@
 
 ---
 
-## 🎯 Production Ready - Version 1.0.3
+## 🎯 Production Ready - Version 1.1.0
 
 **What's included in production release:**
 - ✅ Full spec generation pipeline (Tier 1-4)
@@ -110,11 +110,27 @@
 - ✅ **File persistence system** - Structured output directories
 - ✅ **Checkpoint system** - Progress tracking after each wave
 - ✅ **/spec2-status command** - View current build progress
+- ✅ **/spec2-resume command (v1.1.0)** - Actually resumes from checkpoint
+- ✅ **Tier context refinement (v1.1.0)** - System spec flows to Waves 3/4/5/6 as read-only NFR context
+- ✅ **Sharpened Tier 2 validator (v1.1.0)** - Rejects underspecified Dependencies sections
+
+**Agent isolation contract (v1.1.0 clarification):**
+Each fresh agent receives a *scoped slice* of orchestrator state:
+- Wave 2 generator: system spec (parent) + subsystem name
+- Wave 3 generator: **system spec (read-only SYSTEM CONTEXT)** + parent subsystem spec
+- Wave 4 generator: **system spec (read-only)** + all component specs
+- Wave 5 generator: **system spec (read-only)** + component spec + integration spec
+- Wave 6 generator: **system spec (read-only)** + component spec + integration spec
+- Validators: unchanged — scoped to the tier they validate
+
+Agents NEVER see sibling specs at the same tier. Cross-tier overlap is caught by
+Wave Alignment validators AFTER generation, not at generation time.
 
 **What happens on validation failure:**
 - **All Waves 1-5:** Regenerates automatically with validator feedback (max 3 attempts)
 - **Wave 6:** Fix loop for code (anti-hallucination)
 - **Wave Alignment Conflicts:** Throws error with conflict details (manual resolution)
+- **Interrupted build:** Run `/spec2-resume` to continue from last checkpoint
 
 **No workarounds needed** - system handles failures automatically with intelligent feedback loops.
 
@@ -225,12 +241,15 @@ utils/
   ├── persist.ts               ✅ 136 lines (file persistence + project structure)
   └── checkpoint.ts            ✅ 101 lines (progress checkpointing)
 
-orchestrate.ts                 ✅ 623 lines (full pipeline with checkpoints)
+orchestrate.ts                 ✅ ~560 lines (wave functions + Ctx + resume dispatch)
 
 skills/spec2-status/
   └── status.ts                ✅ 72 lines (/spec2-status command)
 
-Total: ~2,034 lines of production code
+skills/spec2-resume/
+  └── resume.ts                ✅ 120 lines (/spec2-resume command — wired to orchestrator)
+
+Total: ~2,050 lines of production code
 ```
 
 ### TypeScript Compilation
@@ -322,13 +341,20 @@ All 6 waves have:
 4. Wave alignment checks (Waves 2-3)
 5. Production + testing modes
 6. SHA256 spec locking
-7. Full orchestration pipeline (623 lines, includes checkpoints)
+7. Full orchestration pipeline (wave functions + Ctx + checkpoints)
 8. **Artifact generation system (Wave 5)** - 4 artifacts per component
 9. **File persistence system** - Structured output with project summary
 10. **Checkpoint system** - Progress saved after each wave
 11. **/spec2-status command** - View current build progress
 
-**Total implementation: ~2,034 lines of production TypeScript**
+**v1.1.0 additions:**
+12. **Orchestrator refactor** — waves extracted into standalone functions operating on a Ctx object. Enables clean resume without code duplication.
+13. **/spec2-resume — functional** — loads checkpoint, dispatches to the correct wave via `orchestrateSpec2FromCheckpoint`, preserves agent isolation. Smoke-tested end-to-end (wave3→wave4 and wave5→wave6 routing verified).
+14. **Tier context refinement** — system spec now flows as read-only `SYSTEM CONTEXT` to Waves 3/4/5/6 for NFR awareness. Sibling specs at the same tier are never shared; cross-tier concerns are handled by Wave Alignment validators *after* generation.
+15. **Tier 2 validator sharpened** — now rejects underspecified Dependencies sections ("uses LoggingService" fails; must name contract surface). Rationale: downstream Tier 3 component generation cannot see sibling subsystems, so the parent subsystem's Dependencies is the ONLY channel by which external contracts reach component designers.
+16. **Wave 5/6 resume-safety** — Skip already-generated artifacts/code on resume (no wasted LLM calls).
+
+**Total implementation: ~2,050 lines of production TypeScript**
 
 **Next steps:**
 1. Test end-to-end with real requirements
@@ -337,6 +363,8 @@ All 6 waves have:
 
 ---
 
-*Version: 1.0.0 (Production Release)*
+*Version: 1.1.0 (Resume + Tier Context Refinement)*
 *All validation + regeneration loops: COMPLETE*
+*Resume: FUNCTIONAL (routing verified end-to-end)*
+*Agent isolation: preserved across fresh runs and resumes*
 *Ready for production deployment*

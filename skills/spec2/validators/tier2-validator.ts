@@ -28,7 +28,16 @@ Validate this subsystem spec. Check:
 
 1. **Alignment with System**: Matches responsibilities from system spec
 2. **Component Identification**: Components clearly defined with distinct purposes
-3. **Dependencies**: What this subsystem needs/provides is clear
+3. **Dependencies — RIGOROUS CHECK**:
+   - Every external dependency (other subsystems) MUST specify the *contract surface* used,
+     not just a vague name. ERROR if a dependency reads like "uses LoggingService" without
+     naming the functions/types/endpoints consumed.
+   - Every "Provides" entry MUST name the exposed contract surface (functions/types/events),
+     not just describe capabilities in prose.
+   - Rationale: downstream Tier 3 component generation sees ONLY this subsystem's spec plus
+     the system spec — it cannot see sibling subsystems. An underspecified Dependencies
+     section will cause component designers to either (a) re-implement sibling behavior, or
+     (b) guess at interfaces. Both are ERROR-level spec bugs, not warnings.
 4. **Test Strategy**: How to test this subsystem is defined
 5. **No Implementation Details**: Focuses on WHAT, not HOW (that's Tier 3)
 

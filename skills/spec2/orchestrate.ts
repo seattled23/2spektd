@@ -6,6 +6,13 @@
  * - Wave alignment validators for cross-spec consistency
  * - Feedback loops for regeneration (max 3 attempts)
  * - Parallel execution within waves with sync barriers
+ *
+ * Architecture note on "shared context":
+ * The Ctx object below holds ONLY orchestrator-local state — the same
+ * variables that used to be function-locals. No fresh agent sees Ctx;
+ * each agent gets its scoped slice via explicit arguments, preserving
+ * the isolation contract (system spec = read-only NFR context for
+ * downstream tiers, parent tier spec = design target, never siblings).
  */
 
 import { generateSystemSpec } from './agents/tier1.js';
@@ -20,12 +27,23 @@ import { validateSystemSpec } from './validators/tier1-validator.js';
 import { validateSubsystemSpec } from './validators/tier2-validator.js';
 import { validateComponentSpec } from './validators/tier3-validator.js';
 import { validateIntegrationSpec } from './validators/tier4-validator.js';
-import { validateArtifacts } from './validators/artifact-validator.js';
 import { alignSubsystemWave, alignComponentWave } from './validators/wave-alignment.js';
 import { buildRegenerationPrompt } from './utils/regenerate.js';
 import { getLLMClient } from './utils/llm.js';
-import { initializeProjectStructure, saveSpec, saveArtifacts, saveProjectSummary } from './utils/persist.js';
+import {
+  initializeProjectStructure,
+  saveArtifacts,
+  saveProjectSummary,
+  type ProjectPersistence,
+} from './utils/persist.js';
 import { saveCheckpoint, type Checkpoint } from './utils/checkpoint.js';
+import { initRegistry, ingestComponent as registryIngest } from './registry/index.js';
+import {
+  generateSystemReview,
+  generateSubsystemReview,
+  generateComponentReview,
+  generateIntegrationReview,
+} from './review/index.js';
 
 export interface BuildResult {
   components: string[];
@@ -36,123 +54,188 @@ export interface BuildResult {
 const MAX_REGENERATION_ATTEMPTS = 3;
 
 /**
- * Resume orchestration from a checkpoint
+ * Wrapper for review-package generation. Reviews are human-facing artifacts;
+ * a failure to render one must NEVER fail the pipeline. Log and continue.
  */
-export async function orchestrateSpec2FromCheckpoint(
-  checkpoint: Checkpoint
-): Promise<BuildResult> {
-  console.log(`\n🔄 Resuming from ${checkpoint.phase}...\n`);
-
-  const { requirements, language } = checkpoint;
-
-  // Initialize project structure (idempotent)
-  const dirs = initializeProjectStructure('.spec2');
-
-  // Reconstruct Maps from checkpoint
-  const subsystemSpecs = new Map(Object.entries(checkpoint.subsystemSpecs || {}));
-  const componentSpecs = new Map(Object.entries(checkpoint.componentSpecs || {}));
-  const componentArtifacts = new Map(Object.entries(checkpoint.artifacts || {}));
-
-  // Determine where to resume based on checkpoint phase
-  switch (checkpoint.phase) {
-    case 'wave1':
-      // Resume from Wave 2 (Subsystem Specs)
-      return await resumeFromWave2(checkpoint, dirs, subsystemSpecs, componentSpecs, componentArtifacts);
-
-    case 'wave2':
-      // Resume from Wave 3 (Component Specs)
-      return await resumeFromWave3(checkpoint, dirs, subsystemSpecs, componentSpecs, componentArtifacts);
-
-    case 'wave3':
-      // Resume from Wave 4 (Integration Spec)
-      return await resumeFromWave4(checkpoint, dirs, subsystemSpecs, componentSpecs, componentArtifacts);
-
-    case 'wave4':
-      // Resume from Wave 5 (Artifacts)
-      return await resumeFromWave5(checkpoint, dirs, subsystemSpecs, componentSpecs, componentArtifacts);
-
-    case 'wave5':
-      // Resume from Wave 6 (Code Generation)
-      return await resumeFromWave6(checkpoint, dirs, componentSpecs, componentArtifacts);
-
-    case 'complete':
-      throw new Error('Build already complete, nothing to resume');
-
-    default:
-      throw new Error(`Unknown checkpoint phase: ${checkpoint.phase}`);
+function safeGenerateReview(
+  fn: () => { path: string; warnings: string[] },
+  label: string,
+): void {
+  try {
+    const result = fn();
+    if (result.warnings.length > 0) {
+      console.warn(
+        `  ⚠️ review[${label}] generated with ${result.warnings.length} parse warning(s) → ${result.path}`,
+      );
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`  ⚠️ review[${label}] skipped: ${msg}`);
   }
 }
 
-// Resume helper functions will be implemented below the main orchestrateSpec2 function
-async function resumeFromWave2(
-  checkpoint: Checkpoint,
-  dirs: any,
-  subsystemSpecs: Map<string, string>,
-  componentSpecs: Map<string, string>,
-  componentArtifacts: Map<string, any>
-): Promise<BuildResult> {
-  // TODO: Implement Wave 2 onwards
-  throw new Error('Resume from Wave 2 not yet implemented');
+/**
+ * Orchestrator state — carried between waves.
+ * Populated progressively by runWave1..runWave6.
+ * Never passed to an LLM; each wave extracts the scoped slice it needs.
+ */
+interface Ctx {
+  requirements: string;
+  language: string;
+  dirs: ProjectPersistence;
+  systemSpec: string;
+  subsystems: string[];
+  subsystemSpecs: Map<string, string>;
+  components: string[];
+  componentSpecs: Map<string, string>;
+  integrationSpec: string;
+  componentArtifacts: Map<string, any>;
+  generatedComponents: string[];
 }
 
-async function resumeFromWave3(
-  checkpoint: Checkpoint,
-  dirs: any,
-  subsystemSpecs: Map<string, string>,
-  componentSpecs: Map<string, string>,
-  componentArtifacts: Map<string, any>
-): Promise<BuildResult> {
-  // TODO: Implement Wave 3 onwards
-  throw new Error('Resume from Wave 3 not yet implemented');
+function newCtx(requirements: string, language: string): Ctx {
+  return {
+    requirements,
+    language,
+    dirs: initializeProjectStructure('.spec2'),
+    systemSpec: '',
+    subsystems: [],
+    subsystemSpecs: new Map(),
+    components: [],
+    componentSpecs: new Map(),
+    integrationSpec: '',
+    componentArtifacts: new Map(),
+    generatedComponents: [],
+  };
 }
 
-async function resumeFromWave4(
-  checkpoint: Checkpoint,
-  dirs: any,
-  subsystemSpecs: Map<string, string>,
-  componentSpecs: Map<string, string>,
-  componentArtifacts: Map<string, any>
-): Promise<BuildResult> {
-  // TODO: Implement Wave 4 onwards
-  throw new Error('Resume from Wave 4 not yet implemented');
+function ctxFromCheckpoint(cp: Checkpoint): Ctx {
+  const dirs = initializeProjectStructure('.spec2'); // idempotent
+  const componentSpecs = new Map(Object.entries(cp.componentSpecs ?? {}));
+  const ctx: Ctx = {
+    requirements: cp.requirements,
+    language: cp.language,
+    dirs,
+    systemSpec: cp.systemSpec ?? '',
+    subsystems: cp.subsystems ?? [],
+    subsystemSpecs: new Map(Object.entries(cp.subsystemSpecs ?? {})),
+    components: cp.components ?? [],
+    componentSpecs,
+    integrationSpec: cp.integrationSpec ?? '',
+    componentArtifacts: new Map(Object.entries(cp.artifacts ?? {})),
+    generatedComponents: cp.generatedComponents ?? [],
+  };
+
+  // If the checkpoint has component specs (wave3+), rebuild the registry so
+  // runWave4 can query it even if registry.db doesn't exist (e.g., checkpoint
+  // from v1.1.0 which predates the registry).
+  if (componentSpecs.size > 0) {
+    rebuildRegistry(componentSpecs, cp.subsystemSpecs ?? {});
+  }
+
+  return ctx;
 }
 
-async function resumeFromWave5(
-  checkpoint: Checkpoint,
-  dirs: any,
-  subsystemSpecs: Map<string, string>,
+/**
+ * Initialize the registry and populate it from a component spec map.
+ * Called from Wave 3 (after validation) and from ctxFromCheckpoint (resume).
+ * The subsystemSpecs map is used to derive the subsystem for each component.
+ * Idempotent: re-runs cleanly if registry.db already exists.
+ */
+function rebuildRegistry(
   componentSpecs: Map<string, string>,
-  componentArtifacts: Map<string, any>
-): Promise<BuildResult> {
-  // TODO: Implement Wave 5 onwards
-  throw new Error('Resume from Wave 5 not yet implemented');
+  subsystemSpecsObj: Record<string, string>
+): void {
+  const dbPath = '.spec2/registry.db';
+  initRegistry(dbPath);
+
+  // Build a component → subsystem lookup from subsystem spec text
+  // (subsystem spec lists "### Component: name" entries)
+  const componentToSubsystem = new Map<string, string>();
+  for (const [subsystem, subsystemSpec] of Object.entries(subsystemSpecsObj)) {
+    const componentNames = subsystemSpec.match(/###\s+Component:\s+(\w[\w\s-]*)/gi) ?? [];
+    for (const match of componentNames) {
+      const name = match.replace(/###\s+Component:\s+/i, '').trim();
+      componentToSubsystem.set(name, subsystem);
+    }
+  }
+
+  for (const [name, specText] of componentSpecs) {
+    const subsystem = componentToSubsystem.get(name) ?? '';
+    const specPath = `.spec2/specs/comp-${name}.md`;
+    registryIngest(name, subsystem, specText, specPath);
+  }
+  console.log(`  📋 Registry: ingested ${componentSpecs.size} component(s) into .spec2/registry.db`);
 }
 
-async function resumeFromWave6(
-  checkpoint: Checkpoint,
-  dirs: any,
-  componentSpecs: Map<string, string>,
-  componentArtifacts: Map<string, any>
-): Promise<BuildResult> {
-  // TODO: Implement Wave 6 onwards
-  throw new Error('Resume from Wave 6 not yet implemented');
-}
+// ═══════════════════════════════════════════════════════════════════════
+//  ENTRY POINTS
+// ═══════════════════════════════════════════════════════════════════════
 
 export async function orchestrateSpec2(
   requirements: string,
   language: string
 ): Promise<BuildResult> {
   console.log('\n🔷 PHASE 1: Specification Generation\n');
-
-  // Initialize project structure
-  const dirs = initializeProjectStructure('.spec2');
+  const ctx = newCtx(requirements, language);
   console.log('📁 Initialized project structure at .spec2/\n');
 
-  // ━━━ WAVE 1: System Spec ━━━
+  await runWave1(ctx);
+  await runWave2(ctx);
+  await runWave3(ctx);
+  await runWave4(ctx);
+  await runWave5(ctx);
+  return await runWave6(ctx);
+}
+
+/**
+ * Resume orchestration from a checkpoint.
+ * Skips completed waves; re-runs the wave *after* the checkpoint's phase.
+ */
+export async function orchestrateSpec2FromCheckpoint(
+  checkpoint: Checkpoint
+): Promise<BuildResult> {
+  console.log(`\n🔄 Resuming from checkpoint (last completed: ${checkpoint.phase})...\n`);
+  const ctx = ctxFromCheckpoint(checkpoint);
+
+  switch (checkpoint.phase) {
+    case 'wave1':
+      await runWave2(ctx);
+      await runWave3(ctx);
+      await runWave4(ctx);
+      await runWave5(ctx);
+      return await runWave6(ctx);
+    case 'wave2':
+      await runWave3(ctx);
+      await runWave4(ctx);
+      await runWave5(ctx);
+      return await runWave6(ctx);
+    case 'wave3':
+      await runWave4(ctx);
+      await runWave5(ctx);
+      return await runWave6(ctx);
+    case 'wave4':
+      await runWave5(ctx);
+      return await runWave6(ctx);
+    case 'wave5':
+      return await runWave6(ctx);
+    case 'wave6':
+    case 'complete':
+      throw new Error('Build already complete, nothing to resume');
+    default:
+      throw new Error(`Unknown checkpoint phase: ${(checkpoint as any).phase}`);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  WAVE FUNCTIONS — each mutates ctx in-place and saves a checkpoint
+// ═══════════════════════════════════════════════════════════════════════
+
+async function runWave1(ctx: Ctx): Promise<void> {
   console.log('━━━ WAVE 1: System Specification ━━━\n');
 
   let systemSpec = '';
-  let systemSpecValidated = false;
+  let validated = false;
 
   for (let attempt = 1; attempt <= MAX_REGENERATION_ATTEMPTS; attempt++) {
     console.log(`📝 Generating Tier 1: System Specification (attempt ${attempt}/${MAX_REGENERATION_ATTEMPTS})...`);
@@ -161,7 +244,7 @@ export async function orchestrateSpec2(
       ? `Generate a Tier 1 System Specification from these requirements.
 
 **Requirements:**
-${requirements}
+${ctx.requirements}
 
 **Your Task:**
 Generate a high-level system architecture specification (~5 pages) that identifies:
@@ -198,7 +281,7 @@ Generate a high-level system architecture specification (~5 pages) that identifi
 
 **CRITICAL:** Focus on identifying the RIGHT subsystems. The rest of the build depends on this.`
       : buildRegenerationPrompt({
-          originalPrompt: requirements,
+          originalPrompt: ctx.requirements,
           attemptNumber: attempt,
           validatorFeedback: 'System spec validation failed',
         });
@@ -209,11 +292,9 @@ Generate a high-level system architecture specification (~5 pages) that identifi
 
     await saveAndLock('system-spec.md', systemSpec);
 
-    // Validate
-    const validation = await validateSystemSpec(requirements, systemSpec);
-
+    const validation = await validateSystemSpec(ctx.requirements, systemSpec);
     if (validation.pass) {
-      systemSpecValidated = true;
+      validated = true;
       const subsystems = extractSubsystems(systemSpec);
       console.log(`✓ System spec validated. Identified ${subsystems.length} subsystems.\n`);
       break;
@@ -222,60 +303,59 @@ Generate a high-level system architecture specification (~5 pages) that identifi
     if (attempt === MAX_REGENERATION_ATTEMPTS) {
       throw new Error(`System spec validation failed after ${MAX_REGENERATION_ATTEMPTS} attempts`);
     }
-
     console.log(`  Regenerating with validator feedback...\n`);
   }
 
-  if (!systemSpecValidated) {
-    throw new Error('System spec validation failed');
-  }
+  if (!validated) throw new Error('System spec validation failed');
 
-  const subsystems = extractSubsystems(systemSpec);
+  ctx.systemSpec = systemSpec;
+  ctx.subsystems = extractSubsystems(systemSpec);
 
-  // Save checkpoint after Wave 1
+  safeGenerateReview(() =>
+    generateSystemReview({ outputDir: ctx.dirs.outputDir }, ctx.systemSpec),
+    'system',
+  );
+
   saveCheckpoint({
     phase: 'wave1',
     timestamp: new Date().toISOString(),
-    requirements,
-    language,
-    systemSpec,
-    subsystems
+    requirements: ctx.requirements,
+    language: ctx.language,
+    systemSpec: ctx.systemSpec,
+    subsystems: ctx.subsystems,
   });
+}
 
-  // ━━━ WAVE 2: Subsystem Specs ━━━
+async function runWave2(ctx: Ctx): Promise<void> {
   console.log('\n━━━ WAVE 2: Subsystem Specifications ━━━\n');
 
-  console.log(`📝 Generating ${subsystems.length} subsystem specs (parallel)...\n`);
-  let subsystemSpecs = await generateSubsystemSpecs(systemSpec, subsystems);
+  console.log(`📝 Generating ${ctx.subsystems.length} subsystem specs (parallel)...\n`);
+  ctx.subsystemSpecs = await generateSubsystemSpecs(ctx.systemSpec, ctx.subsystems);
 
-  // Individual validation (parallel)
   console.log('  Validating all subsystem specs...\n');
-  const subsystemValidations = await Promise.all(
-    Array.from(subsystemSpecs.entries()).map(async ([name, spec]) => {
-      const validation = await validateSubsystemSpec(systemSpec, name, spec);
+  const validations = await Promise.all(
+    Array.from(ctx.subsystemSpecs.entries()).map(async ([name, spec]) => {
+      const validation = await validateSubsystemSpec(ctx.systemSpec, name, spec);
       return { name, spec, validation };
     })
   );
 
-  // Check for failures
-  const failedSubsystems = subsystemValidations.filter(v => !v.validation.pass);
-  if (failedSubsystems.length > 0) {
-    console.log(`\n  ⚠️ ${failedSubsystems.length} subsystem(s) failed validation. Regenerating...\n`);
+  const failed = validations.filter(v => !v.validation.pass);
+  if (failed.length > 0) {
+    console.log(`\n  ⚠️ ${failed.length} subsystem(s) failed validation. Regenerating...\n`);
 
-    // Regenerate failed subsystems
-    for (const failed of failedSubsystems) {
-      console.log(`  Regenerating ${failed.name}...\n`);
+    for (const f of failed) {
+      console.log(`  Regenerating ${f.name}...\n`);
 
       for (let attempt = 1; attempt <= MAX_REGENERATION_ATTEMPTS; attempt++) {
-        // Build prompt with feedback
         const llm = getLLMClient();
         const prompt = attempt === 1
           ? `Generate a Tier 2 Subsystem Specification.
 
 **System Context:**
-${systemSpec}
+${ctx.systemSpec}
 
-**Your Focus:** ${failed.name}
+**Your Focus:** ${f.name}
 
 **Your Task:**
 Generate a detailed subsystem specification (~8 pages) that identifies:
@@ -289,8 +369,15 @@ Generate a detailed subsystem specification (~8 pages) that identifies:
 - Each component should have: name, purpose, key responsibilities
 - Focus on what EXISTS, not how it's implemented
 
+**Dependencies — RIGOROUS REQUIREMENT:**
+For every external subsystem you depend on, you MUST name the exact contract surface
+(functions/types/endpoints) you consume. "Uses LoggingService" is NOT acceptable;
+"Uses LoggingService.emit(level, event, context) returning void" is acceptable.
+Downstream component specs will NOT see sibling subsystems — your dependency
+declarations are the ONLY way they learn what's available externally.
+
 **Output Format:**
-# Subsystem: ${failed.name}
+# Subsystem: ${f.name}
 
 ## Overview
 [What does this subsystem do? How does it fit in the system?]
@@ -307,11 +394,11 @@ Generate a detailed subsystem specification (~8 pages) that identifies:
 
 ## Dependencies
 **Requires from other subsystems:**
-- [Subsystem A]: [What is needed]
-- [Subsystem B]: [What is needed]
+- [Subsystem A] :: [function/type/endpoint with signature] — [why needed]
+- [Subsystem B] :: [function/type/endpoint with signature] — [why needed]
 
 **Provides to other subsystems:**
-- [What this subsystem exposes]
+- [function/type/event name] :: [signature] — [what it does]
 
 ## Test Strategy
 - [How to test this subsystem]
@@ -319,103 +406,109 @@ Generate a detailed subsystem specification (~8 pages) that identifies:
 
 **CRITICAL:** Identify the RIGHT components. Tier 3 will design each component in detail.`
           : buildRegenerationPrompt({
-              originalPrompt: systemSpec,
-              previousAttempt: failed.spec,
-              validatorFeedback: failed.validation.feedbackForNextAttempt,
-              issues: failed.validation.issues,
+              originalPrompt: ctx.systemSpec,
+              previousAttempt: f.spec,
+              validatorFeedback: f.validation.feedbackForNextAttempt,
+              issues: f.validation.issues,
               attemptNumber: attempt + 1,
             });
 
         const response = await llm.prompt(prompt);
         const newSpec = response.content;
 
-        // Re-validate
-        const validation = await validateSubsystemSpec(systemSpec, failed.name, newSpec);
-
+        const validation = await validateSubsystemSpec(ctx.systemSpec, f.name, newSpec);
         if (validation.pass) {
-          // Update subsystemSpecs map
-          subsystemSpecs.set(failed.name, newSpec);
-          console.log(`    ✓ ${failed.name} passed after ${attempt + 1} attempt(s)\n`);
+          ctx.subsystemSpecs.set(f.name, newSpec);
+          console.log(`    ✓ ${f.name} passed after ${attempt + 1} attempt(s)\n`);
           break;
         }
 
         if (attempt === MAX_REGENERATION_ATTEMPTS) {
-          throw new Error(`${failed.name} validation failed after ${MAX_REGENERATION_ATTEMPTS} attempts`);
+          throw new Error(`${f.name} validation failed after ${MAX_REGENERATION_ATTEMPTS} attempts`);
         }
       }
     }
   }
 
-  // Wave alignment check
   console.log('\n  Checking wave alignment...\n');
-  const alignment = await alignSubsystemWave(systemSpec, subsystemSpecs);
+  const alignment = await alignSubsystemWave(ctx.systemSpec, ctx.subsystemSpecs);
   if (!alignment.aligned) {
     console.log(`  ⚠️ Wave alignment issues detected:\n`);
-    for (const conflict of alignment.conflicts) {
-      console.log(`    - ${conflict.issue} (affects: ${conflict.affectedSpecs.join(', ')})`);
-      console.log(`      → ${conflict.suggestion}`);
+    for (const c of alignment.conflicts) {
+      console.log(`    - ${c.issue} (affects: ${c.affectedSpecs.join(', ')})`);
+      console.log(`      → ${c.suggestion}`);
     }
     throw new Error(`Wave 2 alignment failed with ${alignment.conflicts.length} conflict(s). Manual resolution required.`);
   }
 
-  // Save all subsystem specs
-  for (const [name, spec] of subsystemSpecs) {
+  for (const [name, spec] of ctx.subsystemSpecs) {
     await saveAndLock(`subsystem-${name}.md`, spec);
+    safeGenerateReview(
+      () => generateSubsystemReview({ outputDir: ctx.dirs.outputDir }, name, spec),
+      `subsystem(${name})`,
+    );
   }
+  console.log(`\n✓ ${ctx.subsystemSpecs.size} subsystem specs complete.\n`);
 
-  console.log(`\n✓ ${subsystemSpecs.size} subsystem specs complete.\n`);
-
-  // Save checkpoint after Wave 2
   saveCheckpoint({
     phase: 'wave2',
     timestamp: new Date().toISOString(),
-    requirements,
-    language,
-    systemSpec,
-    subsystems,
-    subsystemSpecs: Object.fromEntries(subsystemSpecs)
+    requirements: ctx.requirements,
+    language: ctx.language,
+    systemSpec: ctx.systemSpec,
+    subsystems: ctx.subsystems,
+    subsystemSpecs: Object.fromEntries(ctx.subsystemSpecs),
   });
+}
 
-  // ━━━ WAVE 3: Component Specs ━━━
+async function runWave3(ctx: Ctx): Promise<void> {
   console.log('\n━━━ WAVE 3: Component Specifications ━━━\n');
 
-  const componentsList = extractComponents(subsystemSpecs);
+  const componentsList = extractComponents(ctx.subsystemSpecs);
   console.log(`📝 Generating ${componentsList.length} component specs (parallel)...\n`);
 
-  let componentSpecs = await generateComponentSpecs(subsystemSpecs, componentsList);
+  // Tier 3 generator now receives systemSpec as read-only SYSTEM CONTEXT
+  ctx.componentSpecs = await generateComponentSpecs(
+    ctx.subsystemSpecs,
+    componentsList,
+    ctx.systemSpec
+  );
 
-  // Individual validation (parallel)
   console.log('  Validating all component specs...\n');
-  const componentValidations = await Promise.all(
-    Array.from(componentSpecs.entries()).map(async ([name, spec]) => {
-      // Find parent subsystem for validation context
+  const validations = await Promise.all(
+    Array.from(ctx.componentSpecs.entries()).map(async ([name, spec]) => {
       const component = componentsList.find(c => c.component === name);
-      const subsystemSpec = component ? subsystemSpecs.get(component.subsystem) || '' : '';
+      const subsystemSpec = component ? ctx.subsystemSpecs.get(component.subsystem) || '' : '';
       const validation = await validateComponentSpec(subsystemSpec, name, spec);
       return { name, spec, validation, subsystem: component?.subsystem || '' };
     })
   );
 
-  // Check for failures
-  const failedComponents = componentValidations.filter(v => !v.validation.pass);
-  if (failedComponents.length > 0) {
-    console.log(`\n  ⚠️ ${failedComponents.length} component(s) failed validation. Regenerating...\n`);
+  const failed = validations.filter(v => !v.validation.pass);
+  if (failed.length > 0) {
+    console.log(`\n  ⚠️ ${failed.length} component(s) failed validation. Regenerating...\n`);
 
-    // Regenerate failed components
-    for (const failed of failedComponents) {
-      console.log(`  Regenerating ${failed.name}...\n`);
-
-      const subsystemSpec = subsystemSpecs.get(failed.subsystem) || '';
+    for (const f of failed) {
+      console.log(`  Regenerating ${f.name}...\n`);
+      const subsystemSpec = ctx.subsystemSpecs.get(f.subsystem) || '';
 
       for (let attempt = 1; attempt <= MAX_REGENERATION_ATTEMPTS; attempt++) {
         const llm = getLLMClient();
+        const systemContextBlock = ctx.systemSpec
+          ? `**SYSTEM CONTEXT (read-only, for NFR awareness — DO NOT design from this directly):**
+${ctx.systemSpec}
+
+---
+
+`
+          : '';
         const prompt = attempt === 1
           ? `Generate a Tier 3 Component Specification.
 
-**Subsystem Context:**
+${systemContextBlock}**Subsystem Context (YOUR DESIGN TARGET):**
 ${subsystemSpec}
 
-**Your Focus:** ${failed.name}
+**Your Focus:** ${f.name}
 
 **Your Task:**
 Generate a detailed component specification (~10-12 pages) that designs:
@@ -430,9 +523,10 @@ Generate a detailed component specification (~10-12 pages) that designs:
 - Define DATA STRUCTURES needed
 - Specify ERROR conditions and handling
 - Focus on WHAT the component does, not implementation code
+- You can ONLY consume external contracts listed in the parent subsystem's Dependencies section
 
 **Output Format:**
-# Component: ${failed.name}
+# Component: ${f.name}
 
 ## Overview
 [What does this component do? How does it fit in the subsystem?]
@@ -476,87 +570,99 @@ Generate a detailed component specification (~10-12 pages) that designs:
 **CRITICAL:** Define clear function signatures. Code generation depends on this.`
           : buildRegenerationPrompt({
               originalPrompt: subsystemSpec,
-              previousAttempt: failed.spec,
-              validatorFeedback: failed.validation.feedbackForNextAttempt,
-              issues: failed.validation.issues,
+              previousAttempt: f.spec,
+              validatorFeedback: f.validation.feedbackForNextAttempt,
+              issues: f.validation.issues,
               attemptNumber: attempt + 1,
             });
 
         const response = await llm.prompt(prompt);
         const newSpec = response.content;
 
-        // Re-validate
-        const validation = await validateComponentSpec(subsystemSpec, failed.name, newSpec);
-
+        const validation = await validateComponentSpec(subsystemSpec, f.name, newSpec);
         if (validation.pass) {
-          // Update componentSpecs map
-          componentSpecs.set(failed.name, newSpec);
-          console.log(`    ✓ ${failed.name} passed after ${attempt + 1} attempt(s)\n`);
+          ctx.componentSpecs.set(f.name, newSpec);
+          console.log(`    ✓ ${f.name} passed after ${attempt + 1} attempt(s)\n`);
           break;
         }
 
         if (attempt === MAX_REGENERATION_ATTEMPTS) {
-          throw new Error(`${failed.name} validation failed after ${MAX_REGENERATION_ATTEMPTS} attempts`);
+          throw new Error(`${f.name} validation failed after ${MAX_REGENERATION_ATTEMPTS} attempts`);
         }
       }
     }
   }
 
-  // Wave alignment check
   console.log('\n  Checking wave alignment...\n');
-  const componentAlignment = await alignComponentWave(subsystemSpecs, componentSpecs);
-  if (!componentAlignment.aligned) {
+  const alignment = await alignComponentWave(ctx.subsystemSpecs, ctx.componentSpecs);
+  if (!alignment.aligned) {
     console.log(`  ⚠️ Wave alignment issues detected:\n`);
-    for (const conflict of componentAlignment.conflicts) {
-      console.log(`    - ${conflict.issue} (affects: ${conflict.affectedSpecs.join(', ')})`);
-      console.log(`      → ${conflict.suggestion}`);
+    for (const c of alignment.conflicts) {
+      console.log(`    - ${c.issue} (affects: ${c.affectedSpecs.join(', ')})`);
+      console.log(`      → ${c.suggestion}`);
     }
-    throw new Error(`Wave 3 alignment failed with ${componentAlignment.conflicts.length} conflict(s). Manual resolution required.`);
+    throw new Error(`Wave 3 alignment failed with ${alignment.conflicts.length} conflict(s). Manual resolution required.`);
   }
 
-  // Save all component specs
-  for (const [name, spec] of componentSpecs) {
+  for (const [name, spec] of ctx.componentSpecs) {
     await saveAndLock(`comp-${name}.md`, spec);
+    safeGenerateReview(
+      () => generateComponentReview({ outputDir: ctx.dirs.outputDir }, name, spec),
+      `component(${name})`,
+    );
   }
+  console.log(`\n✓ ${ctx.componentSpecs.size} component specs complete.\n`);
 
-  console.log(`\n✓ ${componentSpecs.size} component specs complete.\n`);
+  ctx.components = Array.from(ctx.componentSpecs.keys());
 
-  // Save checkpoint after Wave 3
-  const components = Array.from(componentSpecs.keys());
+  // Build the integration registry from validated component specs.
+  // Orchestrator-local state: registry is never passed to an LLM directly.
+  rebuildRegistry(ctx.componentSpecs, Object.fromEntries(ctx.subsystemSpecs));
+
   saveCheckpoint({
     phase: 'wave3',
     timestamp: new Date().toISOString(),
-    requirements,
-    language,
-    systemSpec,
-    subsystems,
-    subsystemSpecs: Object.fromEntries(subsystemSpecs),
-    components,
-    componentSpecs: Object.fromEntries(componentSpecs)
+    requirements: ctx.requirements,
+    language: ctx.language,
+    systemSpec: ctx.systemSpec,
+    subsystems: ctx.subsystems,
+    subsystemSpecs: Object.fromEntries(ctx.subsystemSpecs),
+    components: ctx.components,
+    componentSpecs: Object.fromEntries(ctx.componentSpecs),
   });
+}
 
-  // ━━━ WAVE 4: Integration Spec ━━━
+async function runWave4(ctx: Ctx): Promise<void> {
   console.log('\n━━━ WAVE 4: Integration Specification ━━━\n');
 
   let integrationSpec = '';
-  let integrationSpecValidated = false;
+  let validated = false;
 
   for (let attempt = 1; attempt <= MAX_REGENERATION_ATTEMPTS; attempt++) {
     console.log(`📝 Generating Tier 4: Integration Specification (attempt ${attempt}/${MAX_REGENERATION_ATTEMPTS})...`);
 
     if (attempt === 1) {
-      integrationSpec = await generateIntegrationSpec();
+      // Tier 4 gets systemSpec as read-only SYSTEM CONTEXT
+      integrationSpec = await generateIntegrationSpec(ctx.systemSpec);
     } else {
-      // Regenerate with feedback
       const llm = getLLMClient();
-      const componentsList = Array.from(componentSpecs.entries())
+      const componentsList = Array.from(ctx.componentSpecs.entries())
         .map(([name, spec]) => `### ${name}\n${spec}`)
         .join('\n\n---\n\n');
+
+      const systemContextBlock = ctx.systemSpec
+        ? `**SYSTEM CONTEXT (read-only, for NFR awareness):**
+${ctx.systemSpec}
+
+---
+
+`
+        : '';
 
       const prompt = buildRegenerationPrompt({
         originalPrompt: `Generate a Tier 4 Integration Specification.
 
-**All Component Specs:**
+${systemContextBlock}**All Component Specs:**
 ${componentsList}
 
 **Your Task:**
@@ -614,11 +720,9 @@ function_name(params) -> return_type
 
     await saveAndLock('integration.md', integrationSpec);
 
-    // Validate integration spec
-    const integrationValidation = await validateIntegrationSpec(componentSpecs, integrationSpec);
-
-    if (integrationValidation.pass) {
-      integrationSpecValidated = true;
+    const validation = await validateIntegrationSpec(ctx.componentSpecs, integrationSpec);
+    if (validation.pass) {
+      validated = true;
       console.log(`✓ Integration spec validated.\n`);
       break;
     }
@@ -626,121 +730,127 @@ function_name(params) -> return_type
     if (attempt === MAX_REGENERATION_ATTEMPTS) {
       throw new Error(`Integration spec validation failed after ${MAX_REGENERATION_ATTEMPTS} attempts`);
     }
-
     console.log(`  Regenerating with validator feedback...\n`);
   }
 
-  if (!integrationSpecValidated) {
-    throw new Error('Integration spec validation failed');
-  }
-
+  if (!validated) throw new Error('Integration spec validation failed');
   console.log('✓ Integration spec complete.\n');
 
-  // Save checkpoint after Wave 4
+  ctx.integrationSpec = integrationSpec;
+
+  safeGenerateReview(
+    () => generateIntegrationReview({ outputDir: ctx.dirs.outputDir }, ctx.integrationSpec),
+    'integration',
+  );
+
   saveCheckpoint({
     phase: 'wave4',
     timestamp: new Date().toISOString(),
-    requirements,
-    language,
-    systemSpec,
-    subsystems,
-    subsystemSpecs: Object.fromEntries(subsystemSpecs),
-    components,
-    componentSpecs: Object.fromEntries(componentSpecs),
-    integrationSpec
+    requirements: ctx.requirements,
+    language: ctx.language,
+    systemSpec: ctx.systemSpec,
+    subsystems: ctx.subsystems,
+    subsystemSpecs: Object.fromEntries(ctx.subsystemSpecs),
+    components: ctx.components,
+    componentSpecs: Object.fromEntries(ctx.componentSpecs),
+    integrationSpec: ctx.integrationSpec,
   });
 
-  // ━━━ Lock All Specs ━━━
   console.log('\n✓ All specs locked with SHA256 checksums.\n');
+}
 
-  // ━━━ WAVE 5: Artifacts ━━━
+async function runWave5(ctx: Ctx): Promise<void> {
   console.log('\n🔷 PHASE 2: Artifact Generation\n');
 
-  const componentArtifacts = new Map<string, any>();
+  // Resume-safe: skip components whose artifacts already exist in ctx
+  for (const [component, spec] of ctx.componentSpecs) {
+    if (ctx.componentArtifacts.has(component)) {
+      console.log(`⏭️  Skipping ${component} (artifacts already generated)`);
+      continue;
+    }
 
-  for (const [component, spec] of componentSpecs) {
     console.log(`📦 Generating artifacts for ${component}...`);
-
-    // Generate and validate artifacts (includes regeneration loop)
-    const artifacts = await generateAndAuditArtifacts(spec, integrationSpec, component);
-    componentArtifacts.set(component, artifacts);
-
-    // Save artifacts to disk
-    saveArtifacts(dirs, component, artifacts);
-
+    const artifacts = await generateAndAuditArtifacts(
+      spec,
+      ctx.integrationSpec,
+      component,
+      ctx.systemSpec
+    );
+    ctx.componentArtifacts.set(component, artifacts);
+    saveArtifacts(ctx.dirs, component, artifacts);
     console.log(`✓ ${component} artifacts generated and validated.\n`);
   }
 
-  // Save checkpoint after Wave 5
   saveCheckpoint({
     phase: 'wave5',
     timestamp: new Date().toISOString(),
-    requirements,
-    language,
-    systemSpec,
-    subsystems,
-    subsystemSpecs: Object.fromEntries(subsystemSpecs),
-    components,
-    componentSpecs: Object.fromEntries(componentSpecs),
-    integrationSpec,
-    artifacts: Object.fromEntries(componentArtifacts)
+    requirements: ctx.requirements,
+    language: ctx.language,
+    systemSpec: ctx.systemSpec,
+    subsystems: ctx.subsystems,
+    subsystemSpecs: Object.fromEntries(ctx.subsystemSpecs),
+    components: ctx.components,
+    componentSpecs: Object.fromEntries(ctx.componentSpecs),
+    integrationSpec: ctx.integrationSpec,
+    artifacts: Object.fromEntries(ctx.componentArtifacts),
   });
+}
 
-  // ━━━ WAVE 6: Code ━━━
+async function runWave6(ctx: Ctx): Promise<BuildResult> {
   console.log('\n🔷 PHASE 3: Code Generation & Verification\n');
 
-  const generatedComponents: string[] = [];
+  for (const [component, spec] of ctx.componentSpecs) {
+    if (ctx.generatedComponents.includes(component)) {
+      console.log(`⏭️  Skipping ${component} (code already generated)`);
+      continue;
+    }
 
-  for (const [component, spec] of componentSpecs) {
     console.log(`💻 Generating code for ${component}...`);
-    const outputPath = `.spec2/src/${component}.${getExtension(language)}`;
+    const outputPath = `.spec2/src/${component}.${getExtension(ctx.language)}`;
 
     await generateAndValidateCode(
       spec,
       component,
-      integrationSpec,
-      language,
-      outputPath
+      ctx.integrationSpec,
+      ctx.language,
+      outputPath,
+      ctx.systemSpec
     );
 
-    generatedComponents.push(component);
+    ctx.generatedComponents.push(component);
     console.log(`✓ ${component} code validated and approved.\n`);
   }
 
-  // PHASE 4: INTEGRATION
   console.log('\n🔷 PHASE 4: Integration Test\n');
-  console.log('Running integration tests...');
-  // TODO: Implement integration test runner
-  console.log('✓ Integration tests passed.\n');
+  // Integration test runner is not implemented in v1.2.0 — see ROADMAP §3 Tier 2.
+  // We intentionally do not print a fake "passed" log here.
 
-  // Generate project summary
-  saveProjectSummary(dirs, {
-    requirements,
-    language,
-    components: generatedComponents,
+  saveProjectSummary(ctx.dirs, {
+    requirements: ctx.requirements,
+    language: ctx.language,
+    components: ctx.generatedComponents,
     generatedAt: new Date().toISOString(),
   });
 
-  // Save final checkpoint
   saveCheckpoint({
     phase: 'complete',
     timestamp: new Date().toISOString(),
-    requirements,
-    language,
-    systemSpec,
-    subsystems,
-    subsystemSpecs: Object.fromEntries(subsystemSpecs),
-    components,
-    componentSpecs: Object.fromEntries(componentSpecs),
-    integrationSpec,
-    artifacts: Object.fromEntries(componentArtifacts),
-    generatedComponents
+    requirements: ctx.requirements,
+    language: ctx.language,
+    systemSpec: ctx.systemSpec,
+    subsystems: ctx.subsystems,
+    subsystemSpecs: Object.fromEntries(ctx.subsystemSpecs),
+    components: ctx.components,
+    componentSpecs: Object.fromEntries(ctx.componentSpecs),
+    integrationSpec: ctx.integrationSpec,
+    artifacts: Object.fromEntries(ctx.componentArtifacts),
+    generatedComponents: ctx.generatedComponents,
   });
 
   return {
-    components: generatedComponents,
+    components: ctx.generatedComponents,
     validationStatus: 'PASSED',
-    outputPath: dirs.outputDir
+    outputPath: ctx.dirs.outputDir,
   };
 }
 
@@ -751,7 +861,6 @@ function getExtension(language: string): string {
     javascript: 'js',
     go: 'go',
     java: 'java',
-    rust: 'rs'
   };
   return extensions[language] || 'txt';
 }

@@ -8,7 +8,7 @@ import { orchestrateSpec2 } from './orchestrate.js';
 
 export interface SkillArgs {
   requirements: string;
-  language?: 'python' | 'typescript' | 'go' | 'java' | 'rust';
+  language?: 'python' | 'typescript' | 'go' | 'java';
 }
 
 export async function execute(args: SkillArgs): Promise<void> {

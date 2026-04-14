@@ -11,12 +11,13 @@ export async function generateAndValidateCode(
   component: string,
   integrationSpec: string,
   language: string,
-  outputPath: string
+  outputPath: string,
+  systemSpec: string = ''
 ): Promise<void> {
   console.log(`    💻 Generating code for ${component}...`);
 
   // One-shot code generation
-  const code = await generateCode(componentSpec, integrationSpec, language);
+  const code = await generateCode(componentSpec, integrationSpec, language, systemSpec);
 
   // Save code
   await fs.mkdir(outputPath.substring(0, outputPath.lastIndexOf('/')), { recursive: true });
@@ -37,12 +38,21 @@ export async function generateAndValidateCode(
 async function generateCode(
   componentSpec: string,
   integrationSpec: string,
-  language: string
+  language: string,
+  systemSpec: string = ''
 ): Promise<string> {
   const llm = getLLMClient();
+  const systemContextBlock = systemSpec
+    ? `**SYSTEM CONTEXT (read-only, for NFR awareness — performance/security targets):**
+${systemSpec}
+
+---
+
+`
+    : '';
   const response = await llm.prompt(`Generate production-ready code from this specification.
 
-**Component Specification:**
+${systemContextBlock}**Component Specification (YOUR IMPLEMENTATION TARGET):**
 ${componentSpec}
 
 **Integration Specification:**

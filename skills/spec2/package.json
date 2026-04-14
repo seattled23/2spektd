@@ -7,7 +7,11 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
-    "test": "node --test dist/**/*.test.js"
+    "test": "npm run test:anti-hollow && npm run test:registry && npm run test:jobs && npm run test:review",
+    "test:anti-hollow": "node verification/anti-hollow.test.mjs",
+    "test:registry": "node registry/registry.test.mjs",
+    "test:jobs": "node utils/jobs.test.mjs",
+    "test:review": "node review/review.test.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.0",

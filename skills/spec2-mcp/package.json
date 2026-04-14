@@ -1,0 +1,26 @@
+{
+  "name": "spec2-mcp",
+  "version": "0.1.0",
+  "description": "MCP server exposing spec2 as tools for Claude Code, Gemini CLI, and other MCP clients",
+  "type": "module",
+  "main": "dist/server.js",
+  "bin": {
+    "spec2-mcp": "dist/server.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "smoke": "node smoke-test.mjs",
+    "test:hygiene": "node stdio-hygiene-test.mjs",
+    "test": "node smoke-test.mjs && node stdio-hygiene-test.mjs",
+    "install:claude": "node install-to-claude.mjs",
+    "install:print": "node install-to-claude.mjs --print"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.0",
+    "typescript": "^5.4.0"
+  }
+}

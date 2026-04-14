@@ -1,5 +1,9 @@
 # Outline-Strong v2.0 — Implementation Status
 
+> **⚠️ LEGACY DOCUMENT (v1.0 path).** Status snapshot of the 12-layer framework
+> as of 2026-04-05. For current status of the v1.2 wave-based pipeline, see
+> [`ROADMAP.md`](../ROADMAP.md) and `CHANGELOG.md`. This document is frozen.
+
 **Date**: 2026-04-05
 **Status**: Phase 1 Complete (Go Module)
 **Next**: Add TypeScript/Python/Shell modules, build agent orchestration

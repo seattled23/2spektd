@@ -45,9 +45,15 @@ htmlcov/
 *.cover
 .hypothesis/
 
-# 2spektd artifacts
+# 2spektd artifacts (legacy)
 .2spektd/
+
+# spec2 runtime artifacts (v1.x)
+.spec2/
 *.lock
+
+# node
+node_modules/
 
 # Validation reports
 validation/reports/

@@ -1,5 +1,9 @@
 # Outline-Strong v2.0 — Completion Summary
 
+> **⚠️ LEGACY DOCUMENT (v1.0 path).** Summary of the 12-layer framework
+> completion as of 2026-04-05. For the v1.2 wave-based pipeline, see
+> [`ROADMAP.md`](../ROADMAP.md). This document is frozen.
+
 **Date**: 2026-04-05
 **Status**: ✅ ALL PHASES COMPLETE
 **Implementation Time**: ~4 hours (single session)

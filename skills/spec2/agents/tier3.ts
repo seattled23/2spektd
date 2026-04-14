@@ -15,7 +15,8 @@ interface Component {
 
 export async function generateComponentSpecs(
   subsystemSpecs: Map<string, string>,
-  components: Component[]
+  components: Component[],
+  systemSpec: string = ''
 ): Promise<Map<string, string>> {
   console.log(`  Generating ${components.length} component specs sequentially...`);
 
@@ -24,10 +25,11 @@ export async function generateComponentSpecs(
   for (const { component, subsystem } of components) {
     console.log(`\n  📝 Component: ${component}`);
 
-    const spec = await generateDetailedSpec(component, subsystem, subsystemSpecs.get(subsystem)!);
+    const spec = await generateDetailedSpec(component, subsystem, subsystemSpecs.get(subsystem)!, systemSpec);
 
-    // MVP: Auto-approve for now (TODO: add user approval + registry + review package)
-    console.log(`    ⚠️ MVP: Auto-approving ${component}`);
+    // No interactive approval step in v1.2.0 — Tier 3 specs are validated by the
+    // fresh-agent Tier 3 validator (see validators/tier3-validator.ts), and a
+    // Visual Review Package for human review is a roadmap Tier 2 item.
 
     specs.set(component, spec);
     console.log(`    ✓ ${component} spec complete`);
@@ -39,12 +41,21 @@ export async function generateComponentSpecs(
 async function generateDetailedSpec(
   component: string,
   subsystem: string,
-  subsystemSpec: string
+  subsystemSpec: string,
+  systemSpec: string = ''
 ): Promise<string> {
   const llm = getLLMClient();
+  const systemContextBlock = systemSpec
+    ? `**SYSTEM CONTEXT (read-only, for NFR awareness — DO NOT design from this directly):**
+${systemSpec}
+
+---
+
+`
+    : '';
   const response = await llm.prompt(`Generate a Tier 3 Component Specification.
 
-**Subsystem Context:**
+${systemContextBlock}**Subsystem Context (YOUR DESIGN TARGET — design within this scope):**
 ${subsystemSpec}
 
 **Your Focus:** Component "${component}" in subsystem "${subsystem}"

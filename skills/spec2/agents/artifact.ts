@@ -25,7 +25,8 @@ interface GeneratedArtifacts {
 export async function generateAndAuditArtifacts(
   componentSpec: string,
   integrationSpec: string,
-  component: string
+  component: string,
+  systemSpec: string = ''
 ): Promise<GeneratedArtifacts> {
   const llm = getLLMClient();
   let artifacts: GeneratedArtifacts | null = null;
@@ -43,7 +44,8 @@ export async function generateAndAuditArtifacts(
       component,
       attempt,
       artifacts,
-      validation
+      validation,
+      systemSpec
     );
 
     const response = await llm.prompt(prompt);
@@ -79,11 +81,20 @@ function buildArtifactGenerationPrompt(
   component: string,
   attemptNumber: number,
   previousArtifacts: GeneratedArtifacts | null,
-  validation: ValidationResult
+  validation: ValidationResult,
+  systemSpec: string = ''
 ): string {
+  const systemContextBlock = systemSpec
+    ? `**SYSTEM CONTEXT (read-only, for NFR awareness — coverage/quality targets may reference system NFRs):**
+${systemSpec}
+
+---
+
+`
+    : '';
   let prompt = `You are a validation artifact generator.
 
-**Component Specification:**
+${systemContextBlock}**Component Specification (YOUR ARTIFACT TARGET):**
 ${componentSpec}
 
 **Integration Specification:**

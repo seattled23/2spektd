@@ -1,5 +1,10 @@
 # Outline-Strong v2.0 — Quick Start Guide
 
+> **⚠️ LEGACY DOCUMENT (v1.0 path).** Quick-start for the 12-layer framework
+> (`validation/validate-component.sh`). For the current v1.2 pipeline
+> (`/spec2-new`), see repo [`README.md`](../README.md) and
+> [`ROADMAP.md`](../ROADMAP.md).
+
 **Status**: ALL PHASES COMPLETE (Go, TypeScript, Python, Shell + Agent Orchestration)
 **Date**: 2026-04-05
 

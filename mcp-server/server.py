@@ -1,6 +1,17 @@
 #!/usr/bin/env python3
 """
-2spektd MCP Server — Multi-Language Validation Framework
+spec2 LEGACY MCP Server — 12-Layer Validation Framework (v1.0 path)
+
+WARNING: LEGACY. This exposes the v1.0 12-layer validator
+(`validation/validate-component.sh`). It coexists with the v1.2 TS MCP
+server at `skills/spec2-mcp/` (which drives the 6-wave pipeline used by
+/spec2-new). The two servers use disjoint tool namespaces:
+
+   * This server  : validate_component, detect_language, install_tools, ...
+   * spec2-mcp    : spec2_build, spec2_resume, spec2_status, spec2_jobs,
+                    spec2_logs, spec2_check_tests
+
+Future deprecation is tracked in ROADMAP §4. Until then, both are supported.
 
 Provides tools for deterministic 12-layer code validation with anti-reward-hacking.
 """
