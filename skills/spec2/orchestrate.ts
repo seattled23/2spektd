@@ -21,6 +21,7 @@ import { generateComponentSpecs } from './agents/tier3.js';
 import { generateIntegrationSpec } from './agents/tier4.js';
 import { generateAndAuditArtifacts } from './agents/artifact.js';
 import { generateAndValidateCode } from './agents/codegen.js';
+import { getExtensionForLanguage } from './packs/index.js';
 import { extractSubsystems, extractComponents } from './utils/extract.js';
 import { saveAndLock } from './utils/lock.js';
 import { validateSystemSpec } from './validators/tier1-validator.js';
@@ -854,12 +855,8 @@ async function runWave6(ctx: Ctx): Promise<BuildResult> {
   };
 }
 
+// File extension is sourced from the LanguagePack registry (§8). Unregistered
+// languages fall back to the built-in map inside getExtensionForLanguage.
 function getExtension(language: string): string {
-  const extensions: Record<string, string> = {
-    python: 'py',
-    typescript: 'ts',
-    javascript: 'js',
-    go: 'go',
-  };
-  return extensions[language] || 'txt';
+  return getExtensionForLanguage(language);
 }

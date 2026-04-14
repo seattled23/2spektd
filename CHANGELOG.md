@@ -7,6 +7,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Go Language Pack (§8 Pack #1, §9.5-P1)
+- **`skills/spec2/packs/`** — LanguagePack registry (§8.1). Pluggable
+  per-language contract: codegen prompt template, hallucination detector,
+  hollow-test detector, quality adapters. Pack-aware dispatch threads
+  through `anti-hallucination.ts`, `anti-hollow.ts`, `codegen.ts`, and
+  `getExtension` (in `orchestrate.ts` + `utils/persist.ts`).
+- **`skills/spec2/packs/go/`** — Go pack manifest. Go moves from "stub
+  returning passed:true" to first-class validation. Includes:
+  - `codegen-prompt.ts` — Go-idiom guidance (error wrapping, import groups,
+    test conventions, security rules) appended to Wave 6 LLM prompt.
+  - `hallucination.ts` — regex + brace/string-aware comment stripper;
+    Go stdlib allowlist (Go 1.25 roots); classifies each import as stdlib /
+    third-party / internal / suspicious; catches `fake-*`, `generated-*`,
+    RFC 2606 placeholder domains, template leakage, dotless non-stdlib.
+  - `hollow-tests.ts` — brace-aware Go-test-function scanner. Detects
+    `empty_body`, `zero_assertions`, `tautological_assertion` (if true /
+    1 == 1), `mock_only` (gomock / testify-mock), `silent_catch` (defer
+    recover without assertion), file-level `low_density` aggregate.
+    Counts testify `assert.*` / `require.*` as assertions. Handles
+    subtests (`t.Run`) by folding assertions into the parent test.
+  - `lexer.ts` — shared `stripGoComments` + `findMatchingBrace` helpers
+    (aware of strings, comments, rune literals).
+- **`skills/spec2/quality/`** — `QualityToolAdapter` interface with
+  `QualityIssue` shape byte-compatible with CompanyOS2's
+  `tech_debt.py` dict (`{type, severity, file, line, rule, message,
+  detected_at}`). `runAdapter()` + `runAll()` with hard subprocess
+  timeouts, non-fatal tool-missing handling (§9.7).
+- **`skills/spec2/quality/adapters/go/`** — four Go quality adapters:
+  - `gofmt` — format drift detection (listing-only; never mutates code).
+  - `go-vet` — stdlib static analyzer; temp-module sandbox for single-file input.
+  - `golangci-lint` — meta-linter via JSON output; severity mapping
+    promotes `errcheck`, `staticcheck`, `govet`, `typecheck`, `gosec`
+    findings to error level.
+  - `gosec` — security scanner with HIGH→error / MEDIUM→warning /
+    LOW→info mapping.
+- **48-check test suite** (`packs/go/manifest.test.mjs`) — registry
+  integration, 8 hallucination patterns, 9 hollow-test patterns
+  (including testify + subtest + silent-recover + tautological-numeric),
+  plus live smoke tests against all four Go quality tools. MD5 usage in
+  gosec fixture verifies the G401 weak-hash finding actually flows
+  through the adapter pipeline.
+- **Integration path**: Wave 6 `generateAndValidateCode()` now invokes
+  `runAll(pack.qualityTools, …)` after hallucination check succeeds;
+  quality findings are logged but non-fatal (§9.7).
+
+### Changed
+- `anti-hallucination.ts` and `anti-hollow.ts` now dispatch through the
+  pack registry first; legacy TS/JS/Python switch branches remain as
+  fallbacks pending v1.3.1 pack migrations.
+- `getExtension()` in `orchestrate.ts` and `utils/persist.ts` now sources
+  from `packs/index.ts::getExtensionForLanguage`; legacy language map
+  preserved as fallback for unregistered languages.
+
+### Architectural decision
+- Go AST parsing uses regex + `go vet` subprocess instead of
+  tree-sitter-go. The Go toolchain is already required for the quality
+  adapters, so `go vet` gives compiler-grade semantic validation with
+  zero new npm dependencies. Supersedes the §8.4 "tree-sitter-go OR shell
+  to go/parser" open question.
+
 ### Added — Visual Review Packages
 - **`skills/spec2/review/`** (~700 LOC) — deterministic extractor + renderer
   that converts Tier 1-4 spec markdown into 1-page human-facing review

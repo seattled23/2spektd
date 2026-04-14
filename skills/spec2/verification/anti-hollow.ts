@@ -15,15 +15,19 @@
  *   - Low assertion density across the file (< MIN_ASSERTIONS_PER_TEST)
  *
  * Supported languages:
- *   - TypeScript / JavaScript — AST-based, high precision (via @babel/parser)
+ *   - TypeScript / JavaScript — AST-based, high precision (via @babel/parser).
+ *     Built-in dispatch (not yet migrated to a LanguagePack).
  *   - Python                 — regex heuristics (documented limitation;
  *                              no Python AST available in Node). Covers the
  *                              common patterns but may miss deeply indented
- *                              or unusually formatted code.
+ *                              or unusually formatted code. Built-in dispatch.
+ *   - Go                     — regex + brace-aware scanning via the Go
+ *                              LanguagePack (§8.4). See packs/go/hollow-tests.ts.
  *
  * Unsupported:
- *   - Go, Rust — returns a report with { supported: false, passed: true }
- *     so callers can decide whether missing-detector is acceptable.
+ *   - Rust — returns a report with { supported: false, passed: true } so
+ *     callers can decide whether missing-detector is acceptable. Pack pending
+ *     per ROADMAP §8.2 priority #5.
  *
  * Design note:
  *   A false-positive (flag a healthy test as hollow) is more costly than a
@@ -36,6 +40,7 @@ import * as parser from '@babel/parser';
 import traverseModule from '@babel/traverse';
 import type { NodePath } from '@babel/traverse';
 import type * as t from '@babel/types';
+import { getPack } from '../packs/index.js';
 
 // @babel/traverse is CJS; the default export is the traverse function itself
 // but the shape under ESM interop differs. Unwrap defensively.
@@ -81,6 +86,13 @@ export async function detectHollowTests(
   code: string,
   language: string,
 ): Promise<HollowReport> {
+  // Pack-level dispatch — preferred path. See ROADMAP §8.
+  const pack = getPack(language);
+  if (pack?.hollowTestDetector) {
+    return await pack.hollowTestDetector(code);
+  }
+
+  // Legacy built-in dispatch (TypeScript/JavaScript/Python pre-pack).
   switch (language) {
     case 'typescript':
     case 'javascript':

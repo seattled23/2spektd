@@ -1,12 +1,22 @@
 /**
  * Anti-Hallucination Detection via AST Analysis
  *
- * Detects invalid imports, function calls, and type references
- * MVP: Basic implementation for TypeScript/JavaScript
+ * Detects invalid imports, function calls, and type references.
+ *
+ * Dispatch order (v1.3.0+):
+ *   1. If a LanguagePack (§8) is registered for the language and provides
+ *      a hallucinationDetector, delegate to it. Packs own language-specific
+ *      AST / regex / subprocess strategies.
+ *   2. Otherwise fall back to the built-in TypeScript/JavaScript detector
+ *      for legacy parity (Python/other languages return the no-op report).
+ *
+ * v1.4.0 target: every supported language has a pack; this file's switch
+ * becomes a pure pack-registry lookup.
  */
 
 import * as parser from '@babel/parser';
 import traverse from '@babel/traverse';
+import { getPack } from '../packs/index.js';
 
 export interface HallucinationReport {
   invalidImports: string[];
@@ -21,12 +31,23 @@ export async function detectHallucinations(
 ): Promise<HallucinationReport> {
   console.log('    🔍 Running anti-hallucination detection...');
 
+  // Pack-level dispatch — preferred path.
+  const pack = getPack(language);
+  if (pack?.hallucinationDetector) {
+    const report = await pack.hallucinationDetector(code);
+    console.log(
+      `      ✓ Hallucination check (pack=${pack.id}): ${report.invalidImports.length} issues (${report.hallucinationRate.toFixed(1)}%)`,
+    );
+    return report;
+  }
+
+  // Legacy built-in dispatch.
   if (language === 'typescript' || language === 'javascript') {
     return detectTypeScriptHallucinations(code);
   }
 
-  // For MVP, only TypeScript/JavaScript implemented
-  console.log(`    ⚠️ MVP: Hallucination detection not implemented for ${language}`);
+  // No pack, no built-in → no-op report with a warning.
+  console.log(`    ⚠️ Hallucination detection not implemented for ${language}`);
   return {
     invalidImports: [],
     invalidCalls: [],

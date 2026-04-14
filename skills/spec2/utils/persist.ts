@@ -4,6 +4,7 @@
 
 import { writeFileSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
+import { getExtensionForLanguage } from '../packs/index.js';
 
 export interface ProjectPersistence {
   outputDir: string;
@@ -150,12 +151,8 @@ function ensureDir(filePath: string): void {
   mkdirSync(dir, { recursive: true });
 }
 
+// Delegates to the LanguagePack registry (§8). Keeps persist.ts independent
+// of the pack internals — just one function import.
 function getExtension(language: string): string {
-  const extensions: Record<string, string> = {
-    python: 'py',
-    typescript: 'ts',
-    javascript: 'js',
-    go: 'go',
-  };
-  return extensions[language] || 'txt';
+  return getExtensionForLanguage(language);
 }

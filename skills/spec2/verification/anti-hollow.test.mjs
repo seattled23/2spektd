@@ -347,10 +347,27 @@ def test_swallows():
 
 // ═══════════════════════════════════════════════════════════════════════
 //  Unsupported languages
+//
+//  Go moved from "unsupported" → first-class pack (v1.3.0, §8.4). Detector
+//  now dispatches through packs/go/hollow-tests.ts. We keep a spot-check
+//  here for the pack integration — the deep Go suite lives in
+//  packs/go/manifest.test.mjs.
 // ═══════════════════════════════════════════════════════════════════════
 
-await check('unsupported: Go', 'go', 'func TestAdd(t *testing.T) {}', r => {
-  expect(!r.supported, 'Go marked unsupported');
+await check(
+  'pack-dispatch: Go (empty-body test)',
+  'go',
+  'package p\nimport "testing"\nfunc TestAdd(t *testing.T) {}\n',
+  r => {
+    expect(r.supported, 'Go now supported via LanguagePack');
+    expect(!r.passed, 'empty body should fail');
+    expect(rules(r).includes('empty_body'), 'empty_body reported', r.issues);
+  },
+);
+
+// Rust remains without a pack — should still return unsupported + lenient.
+await check('unsupported: Rust', 'rust', 'fn test_add() {}', r => {
+  expect(!r.supported, 'Rust marked unsupported (no pack yet)');
   expect(r.passed, 'unsupported → passed=true (lenient)');
 });
 

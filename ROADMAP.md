@@ -1,6 +1,6 @@
 # Spec2 Roadmap
 
-**Last updated:** 2026-04-13 (post v1.2.0-dev, +§8/§9/§10 language-packs + quality-tools + review-agents plan)
+**Last updated:** 2026-04-14 (v1.3.0-dev — §8 Pack #1 Go shipped: LanguagePack registry + 4 Go quality adapters + AST detectors)
 **Owner:** single source of truth for what's shipped, what's next, what's deferred, and why.
 
 Supersedes scope discussion in: `IMPLEMENTATION_STATUS.md` (status only), `MVP_*` docs (stale),
@@ -139,11 +139,35 @@ v1.1.0 checkpoint), it is rebuilt from the in-memory spec map. Idempotent.
 - File persistence + checkpoint system
 - `/spec2-status` command
 
-### v1.2.0-dev (current, 2026-04-13)
+### v1.2.0-dev (2026-04-13)
 - **MCP server wrapper** (`skills/spec2-mcp/`) — all tools async/job-based
 - **HTTP API** (`skills/spec2-api/`) — Fastify, same job tracking
 - **Anti-hollow test detection** (`skills/spec2/verification/anti-hollow.ts`) — AST-based for TS/JS, regex for Python; 47-check test suite
 - **Integration Registry** (`skills/spec2/registry/`) — SQLite-backed component metadata index; Wave 3 populates it after validation; Tier 4 queries `getRegistrySummary()` instead of loading full specs verbatim; isolation contract preserved (§1.5). 70-check test suite.
+
+### v1.3.0-dev (current, 2026-04-14)
+- **§8 Pack #1 — Go LanguagePack** (`skills/spec2/packs/go/`) — codegen prompt,
+  hallucination detector (regex + Go-stdlib allowlist + suspicious-pattern
+  catch), hollow-test detector (brace-aware Go-test-body scanner with
+  assertion/mock counting). Go moves from "detector stub returning true" to
+  first-class pack. 48-check test suite (`packs/go/manifest.test.mjs`).
+- **§8.1 LanguagePack registry** (`skills/spec2/packs/index.ts`) — pluggable
+  pack interface with pack-aware dispatch from anti-hallucination.ts,
+  anti-hollow.ts, codegen.ts, orchestrate.ts/persist.ts (`getExtension`).
+- **§9.3 QualityToolAdapter interface** (`skills/spec2/quality/adapter.ts`) —
+  subprocess-backed runner with hard timeouts, non-fatal missing-tool handling,
+  normalized `QualityIssue` shape byte-compatible with CompanyOS2's
+  `tech_debt.py` dict. `runAll()` batches adapters against a single file.
+- **§9.5-P1 Go quality adapters** (`skills/spec2/quality/adapters/go/`) —
+  gofmt (format drift), go vet (lint), golangci-lint (meta-linter JSON output),
+  gosec (security, HIGH/MEDIUM/LOW severity mapping). All 4 smoke-tested
+  against real binaries. Auto-materialize temp `go.mod` sandbox for adapters
+  that require module context.
+- **Architectural decision**: AST parsing for Go uses regex + `go vet`
+  subprocess instead of tree-sitter-go. Rationale: Go toolchain is already a
+  hard dependency for the quality adapters, so shelling to `go vet` gives
+  compiler-grade semantic validation with zero new npm deps. Supersedes the
+  §8.4 "tree-sitter-go OR shell to go/parser" open question.
 
 ---
 
@@ -358,7 +382,7 @@ explicitly reversing.
   binary. Rule of thumb: prefer the approach that also lets CompanyOS2 reuse
   the detector (§9.4 reuse plan).
 
-### 8.4 Pack 1 — Go (detailed spec)
+### 8.4 Pack 1 — Go (✅ shipped v1.3.0-dev, 2026-04-14)
 
 **Codegen prompt additions** (into `codegen.ts` language-specific block):
 - Use `go/ast`-compatible idioms (explicit error returns, no panics in library code).
@@ -518,7 +542,7 @@ SAST / vulnerability scanning). Port them once in §9.5 Phase 2.
 
 | Phase | Scope | Effort | Targets |
 |-------|-------|--------|---------|
-| 9.5-P1 | `QualityToolRunner` abstraction + Go pack adapters (golangci-lint, go vet, gosec, gofmt) | 6-8h | v1.3.0 entry |
+| ~~9.5-P1~~ | ~~`QualityToolRunner` abstraction + Go pack adapters (golangci-lint, go vet, gosec, gofmt)~~ | ✅ shipped | v1.3.0-dev |
 | 9.5-P2 | Semgrep + Trivy multi-lang adapters (plug into all packs that list them) | 3-4h | v1.3.0 |
 | 9.5-P3 | Astro pack adapters (astro check, biome) | 3-4h | v1.3.0 or v1.3.1 |
 | 9.5-P4 | Python pack adapters (ruff, bandit, vulture, radon, wily, pyright) | 4-5h | v1.3.1 |
