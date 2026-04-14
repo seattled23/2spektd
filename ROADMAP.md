@@ -421,8 +421,10 @@ explicitly reversing.
 **Quality tools wired in** (see §9 for runner details):
 - `golangci-lint run --out-format json` (meta-linter, bundles ~50 linters including govet + staticcheck).
 - `go vet ./...` (quick sanity pass; overlaps golangci-lint but runs faster).
-- `gosec -fmt json ./...` (security).
+- `gosec -fmt json ./...` (security, code patterns).
 - `gofmt -l` (format drift detection; listing-mode only, doesn't modify).
+- **`govulncheck -json`** 🆕 (dependency-CVE scan against Go vulnerability DB — §9.5-P1b, audit 2026-04-14).
+- **`goimports -l`** 🆕 (canonical import ordering — gofmt doesn't cover grouping — §9.5-P1b).
 
 **Ship gates:**
 - Test fixture with >=10 samples: valid Go, hallucinated imports (3+ variants),
@@ -537,12 +539,15 @@ after `detectHallucinations`, before returning success. Aggregated issues go int
 
 ### 9.4 Tool adapter inventory (port targets, by pack)
 
+Updated 2026-04-14 from tool audit (see `spec2_tool_audit_2026_04_14.md` memory).
+Italicized additions are new gaps identified in the audit.
+
 | Pack | Adapters to port from CompanyOS2 | New adapters | Cross-pack (multi-language) |
 |------|----------------------------------|--------------|------------------------------|
-| Go (#1) | golangci-lint | go vet, gosec, gofmt | semgrep, trivy |
-| Astro (#2) | — | astro check, biome | semgrep |
-| Python (#3) | ruff, bandit, vulture, radon, wily | pyright | semgrep, trivy |
-| TS/JS (#4) | oxlint | biome, tsc, eslint-plugin-security | semgrep, trivy |
+| Go (#1) ✅ shipped v1.3.0-dev | golangci-lint ✅ | go vet ✅, gosec ✅, gofmt ✅, *govulncheck* 🆕, *goimports* 🆕 | semgrep, trivy |
+| Astro (#2) | — | astro check, biome, *knip* 🆕 | semgrep |
+| Python (#3) | ruff, bandit, vulture, radon, wily | *basedpyright* 🆕 (over vanilla pyright), *pip-audit* 🆕, *deptry* 🆕 | semgrep, trivy |
+| TS/JS (#4) | oxlint | biome, tsc, eslint-plugin-security, *knip* 🆕 | semgrep, trivy |
 | Rust (#5) | cargo-clippy | cargo-audit, cargo-deny, rustfmt | semgrep, trivy |
 | C/C++ (#6) | — | clang-tidy, cppcheck, clang-format | semgrep |
 | Java (#7) | — | checkstyle, errorprone, spotbugs | semgrep, trivy |
@@ -557,6 +562,7 @@ SAST / vulnerability scanning). Port them once in §9.5 Phase 2.
 | Phase | Scope | Effort | Targets |
 |-------|-------|--------|---------|
 | ~~9.5-P1~~ | ~~`QualityToolRunner` abstraction + Go pack adapters (golangci-lint, go vet, gosec, gofmt)~~ | ✅ shipped | v1.3.0-dev |
+| 9.5-P1b | Go pack adapters (audit adds): **govulncheck** (dep-CVE) + **goimports** (canonical import ordering) | 2-3h | v1.3.0-dev |
 | 9.5-P2 | Semgrep + Trivy multi-lang adapters (plug into all packs that list them) | 3-4h | v1.3.0 |
 | 9.5-P3 | Astro pack adapters (astro check, biome) | 3-4h | v1.3.0 or v1.3.1 |
 | 9.5-P4 | Python pack adapters (ruff, bandit, vulture, radon, wily, pyright) | 4-5h | v1.3.1 |
@@ -907,4 +913,36 @@ code gen" claim defensible.
    measurable failure rates per pack.
 4. **Per-pack threshold tuning** — complexity gate for 6.5, structural rules
    for 6.3 — initial values are guesses; tighten with usage data.
+
+---
+
+## 12. Tool-selection audit
+
+Authoritative tool-choice log lives in cross-session memory:
+`~/.claude/projects/-home-swarm/memory/spec2_tool_audit_2026_04_14.md`.
+
+Audit covers: clear gaps (🔴), worth-evaluating (🟡), current choices that
+hold up (🟢), and modern approaches not yet explored (🔵). Re-audit cadence:
+quarterly, or when a new major language pack lands, or when a major tool
+release changes the picture.
+
+**Key deltas already promoted into this ROADMAP from the 2026-04-14 audit:**
+- §9.4: Added **govulncheck** + **goimports** to Go pack; **knip** to Astro
+  + TS/JS; **pip-audit**, **deptry**, **basedpyright** note to Python.
+- §9.5: Added Phase **P1b** (Go adapter additions, 2-3h).
+- §8.4: Updated Go pack spec to list the two new adapters.
+- §11: `ast-grep` named as backing tool for §11.5-P3 structural sub-wave.
+
+**Audit-identified but NOT yet promoted (pending prioritization):**
+- Property-based / fuzz testing (`go test -fuzz`, hypothesis, fast-check,
+  proptest) as §11.5-P2 extension or new 6.2b.
+- DSPy / Instructor for structured LLM output (v1.4.0+).
+- LLM-as-judge for §11.5-P6 polish signals.
+- Golden-output testing for spec2 itself (pipeline-drift protection).
+- Model routing by task class (not just failover).
+
+**Meta-goal lens** (see `meta_goal_single_distributed_system.md` memory):
+any new tool must expose a composable surface (MCP, HTTP, or structured
+output) to earn a place in this stack. Speed / feature advantages don't
+override that requirement.
 
