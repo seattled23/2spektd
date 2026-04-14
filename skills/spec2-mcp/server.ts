@@ -133,7 +133,7 @@ const TOOLS = [
         },
         language: {
           type: 'string',
-          enum: ['python', 'typescript', 'javascript', 'go', 'java'],
+          enum: ['python', 'typescript', 'javascript', 'go'],
           description: 'Target implementation language. Defaults to typescript.',
         },
       },
@@ -197,7 +197,7 @@ const TOOLS = [
         },
         language: {
           type: 'string',
-          enum: ['typescript', 'javascript', 'python', 'go', 'java'],
+          enum: ['typescript', 'javascript', 'python', 'go'],
           description:
             'Language of the test code. Unsupported languages return passed=true with supported=false.',
         },

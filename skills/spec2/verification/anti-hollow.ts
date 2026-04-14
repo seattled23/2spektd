@@ -22,7 +22,7 @@
  *                              or unusually formatted code.
  *
  * Unsupported:
- *   - Go, Java, Rust — returns a report with { supported: false, passed: true }
+ *   - Go, Rust — returns a report with { supported: false, passed: true }
  *     so callers can decide whether missing-detector is acceptable.
  *
  * Design note:

@@ -9,7 +9,7 @@ arguments:
     description: "Requirements description or path to requirements.md file"
   - name: language
     type: string
-    description: "Target language (python, typescript, go, java)"
+    description: "Target language (python, typescript, go)"
     optional: true
 ---
 

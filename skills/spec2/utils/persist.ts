@@ -156,7 +156,6 @@ function getExtension(language: string): string {
     typescript: 'ts',
     javascript: 'js',
     go: 'go',
-    java: 'java',
   };
   return extensions[language] || 'txt';
 }

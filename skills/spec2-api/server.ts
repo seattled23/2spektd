@@ -145,7 +145,7 @@ async function registerRoutes(
             requirements: { type: 'string', minLength: 1 },
             language: {
               type: 'string',
-              enum: ['python', 'typescript', 'javascript', 'go', 'java'],
+              enum: ['python', 'typescript', 'javascript', 'go'],
             },
           },
         },
@@ -279,7 +279,7 @@ async function registerRoutes(
             code: { type: 'string', minLength: 1 },
             language: {
               type: 'string',
-              enum: ['typescript', 'javascript', 'python', 'go', 'java'],
+              enum: ['typescript', 'javascript', 'python', 'go'],
             },
           },
         },
