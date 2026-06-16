@@ -10,12 +10,18 @@ Supersedes scope discussion in: `IMPLEMENTATION_STATUS.md` (status only), `MVP_*
 
 ## 0. Current state
 
-**Version:** 1.1.0 — shipped 2026-04-13.
+**Version:** 1.2.0-dev (in-flight) — last shipped 1.1.0 on 2026-04-13.
 
 Core pipeline is functional end-to-end for a clean run and for resume-from-checkpoint.
 All six waves have generator + validator + regeneration loop. Agent isolation
 contract is intact: each fresh agent sees only its scoped slice (system spec as
 read-only NFR context for Waves 3/4/5/6; parent-tier spec as design target).
+
+**Recent design work (2026-06-01 session, not yet shipped):**
+- Wave 0 planning v1.1 design landed (~11K words) — `docs/design/wave-0-planning.md` covering language / architecture / actor-critic-optimization stages. Order: 0₀ → 0a → 0a₂ → 0b → 0c. 7 pareto axes. Open decision 4 = `wave0Interactive` flag.
+- Loop protocol audit at `docs/design/loop-protocol-audit-2026-06-01.md` (~5.3K words) — hybrid (c) chain pattern recommended: `meta → [n-order ⇄ meta-audit] → [actor-critic ⇄ meta-audit] → … → meta-thinking-audit-final`.
+- Kernel `loop-convergence.md` skill landed with `Mode: impl-phase | design-phase` separation (backup at `~/.claude/backups/2026-06-01/loop-convergence.md.bak`). Design-phase rails: plateau-of-zero (N=2), cycle-detection (fingerprint), stuck-on-finding (N=3).
+- Wave 0 implementation (Phase 3) NOT yet shipped — substrate is ready, but `skills/spec2/orchestrate.ts` doesn't yet wire the 0₀/0a/0a₂/0b/0c stages. Tracked as Tessara task #23.
 
 **Files to read for orientation:**
 - `skills/spec2/orchestrate.ts` — wave functions + `Ctx` + entry points
@@ -25,6 +31,8 @@ read-only NFR context for Waves 3/4/5/6; parent-tier spec as design target).
 - `skills/spec2-status/status.ts` — checkpoint reader
 - `CHANGELOG.md` — release history
 - `IMPLEMENTATION_STATUS.md` — current status snapshot
+- `docs/design/wave-0-planning.md` — Wave 0 stages design (2026-06-01)
+- `docs/design/loop-protocol-audit-2026-06-01.md` — kernel loop chain audit (2026-06-01)
 
 ---
 
