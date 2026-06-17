@@ -13,7 +13,7 @@
     "smoke": "LOG_LEVEL=warn node smoke-test.mjs"
   },
   "dependencies": {
-    "fastify": "^5.8.4"
+    "fastify": "^5.8.5"
   },
   "devDependencies": {
     "@types/node": "^20.12.0",
